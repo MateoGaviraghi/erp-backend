@@ -1,9 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PrismaModule } from './prisma/prisma.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { PrismaModule } from './prisma/prisma.module.js';
+import { AuthModule } from './auth/auth.module.js';
+import { UsuariosModule } from './usuarios/usuarios.module.js';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { RolesGuard } from './common/guards/roles.guard.js';
 
 @Module({
   imports: [
@@ -18,8 +23,8 @@ import { PrismaModule } from './prisma/prisma.module';
       },
     ]),
     PrismaModule,
-    // AuthModule,       ← Fase 4
-    // UsuariosModule,   ← Fase 5
+    AuthModule,
+    UsuariosModule,
     // EmpresasModule,   ← Fase 5
     // LocalesModule,    ← Fase 5
     // InventarioModule, ← Fase 6
@@ -31,6 +36,16 @@ import { PrismaModule } from './prisma/prisma.module';
     // ReportesModule,   ← Fase 12
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard, // autenticación global — use @Public() para endpoints públicos
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard, // roles global
+    },
+  ],
 })
 export class AppModule {}

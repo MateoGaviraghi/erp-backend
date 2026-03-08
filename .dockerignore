@@ -1,0 +1,43 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+
+# Build output
+dist/
+
+# Variables de entorno (NUNCA al contenedor)
+.env
+.env.*
+!.env.example
+
+# Tests y cobertura
+test/
+coverage/
+**/*.spec.ts
+**/*.e2e-spec.ts
+
+# Editor / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docs internas
+backend-documentation/
+
+# Scripts de test
+test-endpoints.sh
+
+# Fly.io
+fly.toml
+
+# Prisma migrations backup (opcional — si no querés incluirlas)
+# prisma/migrations/
+
+# Logs
+*.log
+logs/
