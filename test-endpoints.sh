@@ -576,6 +576,176 @@ fi
 
 # ============================================================
 echo ""
+echo "=== [8] COMPRAS ==="
+
+TS8=$(date +%s)
+
+# ── 8a. Proveedores ───────────────────────────────────────
+echo ""
+echo "=== [8a] COMPRAS / PROVEEDORES ==="
+check "GET /proveedores → 200" "200" \
+  "$(status "$BASE/proveedores" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+PROV_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/proveedores" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"PROV$TS8\",\"name\":\"Proveedor Test $TS8\",\"localId\":\"$LOCAL_ID\",\"email\":\"prov${TS8}@test.com\",\"paymentTerms\":30}")
+PROV_BODY=$(echo "$PROV_RESP" | head -n -1)
+PROV_CODE=$(echo "$PROV_RESP" | tail -1)
+PROV_ID=$(echo "$PROV_BODY" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+check "POST /proveedores → 201" "201" "$PROV_CODE"
+
+if [ -n "$PROV_ID" ]; then
+  check "GET /proveedores/:id → 200" "200" \
+    "$(status "$BASE/proveedores/$PROV_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  check "PATCH /proveedores/:id → 200" "200" \
+    "$(status -X PATCH "$BASE/proveedores/$PROV_ID" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d '{"city":"Córdoba"}')"
+
+  check "POST /proveedores code duplicado → 409" "409" \
+    "$(status -X POST "$BASE/proveedores" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"code\":\"PROV$TS8\",\"name\":\"Dup\",\"localId\":\"$LOCAL_ID\"}")"
+
+  check "GET /proveedores/:id/deuda → 200" "200" \
+    "$(status "$BASE/proveedores/$PROV_ID/deuda" -H "Authorization: Bearer $ADMIN_TOKEN")"
+else
+  echo "  ⚠ SKIP  tests de proveedores (no PROV_ID)"
+fi
+
+# ── 8b. Requerimientos ────────────────────────────────────
+echo ""
+echo "=== [8b] COMPRAS / REQUERIMIENTOS ==="
+check "GET /requerimientos → 200" "200" \
+  "$(status "$BASE/requerimientos" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+REQ_ID=""
+if [ -n "$PROD_ID" ]; then
+  REQ_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/requerimientos?localId=$LOCAL_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"solicitante\":\"Test User\",\"departamento\":\"Producción\",\"justificacion\":\"Reposición para test\",\"fechaNecesidad\":\"2026-05-01\",\"items\":[{\"productoId\":\"$PROD_ID\",\"descripcion\":\"Insumo test\",\"cantidad\":100,\"unidad\":\"KG\"}]}")
+  REQ_BODY=$(echo "$REQ_RESP" | head -n -1)
+  REQ_HTTP=$(echo "$REQ_RESP" | tail -1)
+  REQ_ID=$(echo "$REQ_BODY" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+  check "POST /requerimientos → 201" "201" "$REQ_HTTP"
+
+  if [ -n "$REQ_ID" ]; then
+    check "GET /requerimientos/:id → 200" "200" \
+      "$(status "$BASE/requerimientos/$REQ_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    check "PATCH /requerimientos/:id/autorizar → 200" "200" \
+      "$(status -X PATCH "$BASE/requerimientos/$REQ_ID/autorizar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    # Doble autorización → 400
+    check "PATCH /requerimientos/:id/autorizar (ya autorizado) → 400" "400" \
+      "$(status -X PATCH "$BASE/requerimientos/$REQ_ID/autorizar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN")"
+  fi
+else
+  echo "  ⚠ SKIP  tests de requerimientos (requiere PROD_ID)"
+fi
+
+# ── 8c. Órdenes de Compra ─────────────────────────────────
+echo ""
+echo "=== [8c] COMPRAS / ÓRDENES ==="
+check "GET /ordenes-compra → 200" "200" \
+  "$(status "$BASE/ordenes-compra" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+OC_ID=""
+ITEM_ORDEN_ID=""
+if [ -n "$PROV_ID" ] && [ -n "$PROD_ID" ]; then
+  OC_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/ordenes-compra?localId=$LOCAL_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"proveedorId\":\"$PROV_ID\",\"items\":[{\"productoId\":\"$PROD_ID\",\"descripcion\":\"Insumo test\",\"cantidad\":200,\"unidad\":\"KG\",\"precioUnitario\":420.50}],\"observaciones\":\"OC de prueba\"}")
+  OC_BODY=$(echo "$OC_RESP" | head -n -1)
+  OC_HTTP=$(echo "$OC_RESP" | tail -1)
+  OC_ID=$(echo "$OC_BODY" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+  check "POST /ordenes-compra → 201" "201" "$OC_HTTP"
+
+  if [ -n "$OC_ID" ]; then
+    OC_DETAIL=$(curl -s "$BASE/ordenes-compra/$OC_ID" \
+      -H "Authorization: Bearer $ADMIN_TOKEN")
+    # Extract first item ID: items:[{"id":"..."
+    ITEM_ORDEN_ID=$(echo "$OC_DETAIL" | grep -oP '"items":\[{"id":"\K[0-9a-f-]{36}')
+    check "GET /ordenes-compra/:id → 200" "200" \
+      "$(status "$BASE/ordenes-compra/$OC_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    check "PATCH /ordenes-compra/:id/aprobar → 200" "200" \
+      "$(status -X PATCH "$BASE/ordenes-compra/$OC_ID/aprobar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    # Doble aprobación → 404
+    check "PATCH /ordenes-compra/:id/aprobar (ya ENVIADA) → 404" "404" \
+      "$(status -X PATCH "$BASE/ordenes-compra/$OC_ID/aprobar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN")"
+  fi
+else
+  echo "  ⚠ SKIP  tests de órdenes (requiere PROV_ID y PROD_ID)"
+fi
+
+# ── 8d. Recepciones ───────────────────────────────────────
+echo ""
+echo "=== [8d] COMPRAS / RECEPCIONES ==="
+check "GET /recepciones → 200" "200" \
+  "$(status "$BASE/recepciones" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$OC_ID" ] && [ -n "$ITEM_ORDEN_ID" ]; then
+  # Recepción parcial
+  REC_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/recepciones" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"ordenCompraId\":\"$OC_ID\",\"nroRemito\":\"REM-${TS2}A\",\"items\":[{\"itemOrdenCompraId\":\"$ITEM_ORDEN_ID\",\"cantidadRecibida\":100}]}")
+  REC_BODY=$(echo "$REC_RESP" | head -n -1)
+  REC_HTTP=$(echo "$REC_RESP" | tail -1)
+  check "POST /recepciones (parcial) → 201" "201" "$REC_HTTP"
+
+  # Verificar stock aumentó
+  check "GET /inventario/stock/:localId (stock tras recepción) → 200" "200" \
+    "$(status "$BASE/inventario/stock/$LOCAL_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  # Recepción completa
+  REC2_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/recepciones" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"ordenCompraId\":\"$OC_ID\",\"nroRemito\":\"REM-${TS2}B\",\"items\":[{\"itemOrdenCompraId\":\"$ITEM_ORDEN_ID\",\"cantidadRecibida\":100}]}")
+  REC2_HTTP=$(echo "$REC2_RESP" | tail -1)
+  check "POST /recepciones (completa) → 201" "201" "$REC2_HTTP"
+
+  # Intentar recibir más de lo pedido → 400
+  check "POST /recepciones (excede pendiente) → 400" "400" \
+    "$(status -X POST "$BASE/recepciones" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"ordenCompraId\":\"$OC_ID\",\"items\":[{\"itemOrdenCompraId\":\"$ITEM_ORDEN_ID\",\"cantidadRecibida\":9999}]}")"
+else
+  echo "  ⚠ SKIP  tests de recepciones (requiere OC_ID e ITEM_ORDEN_ID)"
+fi
+
+# ── 8e. Pagos a proveedores ───────────────────────────────
+echo ""
+echo "=== [8e] COMPRAS / PAGOS ==="
+check "GET /pagos-proveedor → 200" "200" \
+  "$(status "$BASE/pagos-proveedor" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$PROV_ID" ]; then
+  check "POST /pagos-proveedor → 201" "201" \
+    "$(status -X POST "$BASE/pagos-proveedor" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"proveedorId\":\"$PROV_ID\",\"monto\":20000,\"metodoPago\":\"TRANSFERENCIA\",\"referencia\":\"CBU 000001234567\"}")"
+else
+  echo "  ⚠ SKIP  tests de pagos (requiere PROV_ID)"
+fi
+
+# ============================================================
+echo ""
 echo "══════════════════════════════════════════════"
 TOTAL=$((PASS + FAIL))
 echo "  RESULTADO: $PASS/$TOTAL pruebas pasadas"
