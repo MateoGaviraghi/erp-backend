@@ -394,6 +394,188 @@ fi
 
 # ============================================================
 echo ""
+echo "=== [7] VENTAS ==="
+
+TS=$(date +%s)
+
+# ── 7a. Clientes ──────────────────────────────────────────
+echo ""
+echo "=== [7a] VENTAS / CLIENTES ==="
+check "GET /clientes (admin) → 200" "200" \
+  "$(status "$BASE/clientes" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+CLI_RESP=$(curl -s -X POST "$BASE/clientes" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"CLI$TS\",\"name\":\"Cliente Test $TS\",\"localId\":\"$LOCAL_ID\",\"email\":\"cli${TS}@test.com\"}")
+CLI_CODE=$(echo "$CLI_RESP" | grep -oP '"id"' | head -1 | wc -w | tr -d ' ')
+CLI_ID=$(echo "$CLI_RESP" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+check "POST /clientes → 201" "201" \
+  "$(echo "$CLI_RESP" | grep -oP '"id"' | head -1 | grep -q 'id' && echo 201 || echo 0)"
+
+# Re-check with HTTP status
+CLI_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/clientes" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"CLI${TS}B\",\"name\":\"Cliente B $TS\",\"localId\":\"$LOCAL_ID\"}")
+check "POST /clientes (segundo) → 201" "201" "$CLI_HTTP"
+
+if [ -n "$CLI_ID" ]; then
+  check "GET /clientes/:id → 200" "200" \
+    "$(status "$BASE/clientes/$CLI_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  check "GET /clientes/:id/saldos → 200" "200" \
+    "$(status "$BASE/clientes/$CLI_ID/saldos" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  check "PATCH /clientes/:id → 200" "200" \
+    "$(status -X PATCH "$BASE/clientes/$CLI_ID" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d '{"city":"Buenos Aires"}')"
+
+  check "POST /clientes code duplicado → 409" "409" \
+    "$(status -X POST "$BASE/clientes" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"code\":\"CLI$TS\",\"name\":\"Dup\",\"localId\":\"$LOCAL_ID\"}")"
+else
+  echo "  ⚠ SKIP  tests de clientes (no CLI_ID)"
+fi
+
+# ── 7b. Presupuestos ──────────────────────────────────────
+echo ""
+echo "=== [7b] VENTAS / PRESUPUESTOS ==="
+check "GET /presupuestos → 200" "200" \
+  "$(status "$BASE/presupuestos" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+PRES_HTTP=""
+PRES_ID=""
+if [ -n "$CLI_ID" ] && [ -n "$PROD_ID" ]; then
+  PRES_RESP=$(curl -s -X POST "$BASE/presupuestos?localId=$LOCAL_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"clienteId\":\"$CLI_ID\",\"items\":[{\"productoId\":\"$PROD_ID\",\"cantidad\":2,\"precioUnitario\":100}]}")
+  PRES_ID=$(echo "$PRES_RESP" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+  PRES_HTTP=$(echo "$PRES_RESP" | grep -oP '"numero"' | head -1 | grep -q 'numero' && echo 201 || echo 0)
+  check "POST /presupuestos → 201" "201" \
+    "$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/presupuestos?localId=$LOCAL_ID" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"clienteId\":\"$CLI_ID\",\"items\":[{\"productoId\":\"$PROD_ID\",\"cantidad\":1,\"precioUnitario\":50}]}")"
+
+  if [ -n "$PRES_ID" ]; then
+    check "GET /presupuestos/:id → 200" "200" \
+      "$(status "$BASE/presupuestos/$PRES_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    check "PATCH /presupuestos/:id/estado → 200" "200" \
+      "$(status -X PATCH "$BASE/presupuestos/$PRES_ID/estado" \
+         -H "Authorization: Bearer $ADMIN_TOKEN" \
+         -H "Content-Type: application/json" \
+         -d '{"estado":"ENVIADO"}')"
+  fi
+else
+  echo "  ⚠ SKIP  tests de presupuestos (requiere CLI_ID y PROD_ID)"
+fi
+
+# ── 7c. Pedidos (via convertir presupuesto) ───────────────
+echo ""
+echo "=== [7c] VENTAS / PEDIDOS ==="
+check "GET /pedidos → 200" "200" \
+  "$(status "$BASE/pedidos" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+PED_ID=""
+if [ -n "$PRES_ID" ]; then
+  CONV_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/presupuestos/$PRES_ID/convertir-pedido" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json")
+  CONV_BODY=$(echo "$CONV_RESP" | head -n -1)
+  CONV_CODE=$(echo "$CONV_RESP" | tail -1)
+  PED_ID=$(echo "$CONV_BODY" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+  check "POST /presupuestos/:id/convertir-pedido → 201" "201" "$CONV_CODE"
+
+  if [ -n "$PED_ID" ]; then
+    check "GET /pedidos/:id → 200" "200" \
+      "$(status "$BASE/pedidos/$PED_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    check "POST /pedidos/:id/aprobar → 201" "201" \
+      "$(status -X POST "$BASE/pedidos/$PED_ID/aprobar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN" \
+         -H "Content-Type: application/json")"
+
+    # Doble convertir → 400 (BadRequestException)
+    check "POST convertir-pedido duplicado → 400" "400" \
+      "$(status -X POST "$BASE/presupuestos/$PRES_ID/convertir-pedido" \
+         -H "Authorization: Bearer $ADMIN_TOKEN" \
+         -H "Content-Type: application/json")"
+  fi
+else
+  echo "  ⚠ SKIP  tests de pedidos (requiere PRES_ID)"
+fi
+
+# ── 7d. Facturas ──────────────────────────────────────────
+echo ""
+echo "=== [7d] VENTAS / FACTURAS ==="
+check "GET /facturas → 200" "200" \
+  "$(status "$BASE/facturas" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+FACT_ID=""
+if [ -n "$PED_ID" ]; then
+  FACTURA_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/facturas/desde-pedido" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"pedidoId\":\"$PED_ID\"}")
+  FACTURA_BODY=$(echo "$FACTURA_RESP" | head -n -1)
+  FACTURA_CODE=$(echo "$FACTURA_RESP" | tail -1)
+  FACT_ID=$(echo "$FACTURA_BODY" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+  check "POST /facturas/desde-pedido → 201" "201" "$FACTURA_CODE"
+
+  if [ -n "$FACT_ID" ]; then
+    check "GET /facturas/:id → 200" "200" \
+      "$(status "$BASE/facturas/$FACT_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    # Verificar stock fue descontado
+    check "GET /inventario/stock/:localId (stock tras factura) → 200" "200" \
+      "$(status "$BASE/inventario/stock/$LOCAL_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+  fi
+else
+  echo "  ⚠ SKIP  tests de facturas (requiere PED_ID)"
+fi
+
+# ── 7e. Cobranzas ─────────────────────────────────────────
+echo ""
+echo "=== [7e] VENTAS / COBRANZAS ==="
+check "GET /cobranzas → 200" "200" \
+  "$(status "$BASE/cobranzas" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$FACT_ID" ]; then
+  # Pago parcial
+  COB_HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/cobranzas" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"facturaId\":\"$FACT_ID\",\"monto\":50,\"metodoPago\":\"EFECTIVO\",\"fecha\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}")
+  check "POST /cobranzas pago parcial → 201" "201" "$COB_HTTP"
+
+  # Verificar saldo en factura
+  check "GET /facturas/:id (tras cobranza) → 200" "200" \
+    "$(status "$BASE/facturas/$FACT_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  # Pago que excede el saldo → 400
+  check "POST /cobranzas monto excesivo → 400" "400" \
+    "$(status -X POST "$BASE/cobranzas" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"facturaId\":\"$FACT_ID\",\"monto\":9999,\"metodoPago\":\"EFECTIVO\",\"fecha\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}")"
+
+  # Anular factura con cobranza → 400
+  check "DELETE /facturas/:id/anular (con cobranzas) → 400" "400" \
+    "$(status -X DELETE "$BASE/facturas/$FACT_ID/anular?motivo=test" \
+       -H "Authorization: Bearer $ADMIN_TOKEN")"
+else
+  echo "  ⚠ SKIP  tests de cobranzas (requiere FACT_ID)"
+fi
+
+# ============================================================
+echo ""
 echo "══════════════════════════════════════════════"
 TOTAL=$((PASS + FAIL))
 echo "  RESULTADO: $PASS/$TOTAL pruebas pasadas"

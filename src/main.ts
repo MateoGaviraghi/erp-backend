@@ -19,12 +19,14 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-    transformOptions: { enableImplicitConversion: true },
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new ResponseInterceptor());
 
@@ -32,7 +34,10 @@ async function bootstrap() {
     .setTitle('ERP System API')
     .setDescription('API REST del sistema ERP')
     .setVersion('1.0')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT-auth')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'JWT-auth',
+    )
     .addTag('health', 'Estado del servidor')
     .addTag('auth', 'Autenticación')
     .addTag('usuarios', 'Gestión de usuarios')
@@ -60,4 +65,4 @@ async function bootstrap() {
   console.log(`🚀 Backend corriendo en: http://0.0.0.0:${port}`);
   console.log(`� Swagger: http://localhost:${port}/api/docs`);
 }
-bootstrap();
+void bootstrap();
