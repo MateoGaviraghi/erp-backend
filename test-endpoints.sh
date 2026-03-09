@@ -745,6 +745,159 @@ else
 fi
 
 # ============================================================
+# ███████╗ █████╗ ███████╗███████╗     █████╗
+# ██╔════╝██╔══██╗██╔════╝██╔════╝    ██╔══██╗
+# █████╗  ███████║███████╗█████╗      ╚██████╗
+# ██╔══╝  ██╔══██║╚════██║██╔══╝       ╚═══██║
+# ██║     ██║  ██║███████║███████╗     █████╔╝
+# ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝    ╚════╝
+echo ""
+echo "=== [FASE 9] FINANZAS ==="
+
+# ── 9a. Plan de Cuentas ──────────────────────────────────
+echo ""
+echo "=== [9a] FINANZAS / PLAN DE CUENTAS ==="
+
+CUENTA_CODE="1.1.TEST-$TS"
+CUENTA_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/plan-cuentas" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"$CUENTA_CODE\",\"nombre\":\"Caja Test $TS\",\"tipo\":\"ACTIVO\",\"naturaleza\":\"DEUDORA\",\"nivel\":1,\"imputable\":true}")
+CUENTA_BODY=$(echo "$CUENTA_RESP" | head -n -1)
+CUENTA_HTTP=$(echo "$CUENTA_RESP" | tail -1)
+check "POST /plan-cuentas → 201" "201" "$CUENTA_HTTP"
+CUENTA_ID=$(echo "$CUENTA_BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+# Duplicado → 409
+check "POST /plan-cuentas (código duplicado) → 409" "409" \
+  "$(status -X POST "$BASE/plan-cuentas" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"code\":\"$CUENTA_CODE\",\"nombre\":\"Otra\",\"tipo\":\"ACTIVO\",\"naturaleza\":\"DEUDORA\",\"nivel\":1}")"
+
+check "GET /plan-cuentas → 200" "200" \
+  "$(status "$BASE/plan-cuentas" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$CUENTA_ID" ]; then
+  check "GET /plan-cuentas/:id/mayor → 200" "200" \
+    "$(status "$BASE/plan-cuentas/$CUENTA_ID/mayor" -H "Authorization: Bearer $ADMIN_TOKEN")"
+else
+  echo "  ⚠ SKIP  GET /plan-cuentas/:id/mayor (requiere CUENTA_ID)"
+fi
+
+# ── 9b. Asientos Contables ───────────────────────────────
+echo ""
+echo "=== [9b] FINANZAS / ASIENTOS ==="
+
+# Crear segunda cuenta para la partida doble (PASIVO/ACREEDORA)
+CUENTA2_CODE="2.1.TEST-$TS"
+CUENTA2_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/plan-cuentas" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"$CUENTA2_CODE\",\"nombre\":\"Proveedor Test $TS\",\"tipo\":\"PASIVO\",\"naturaleza\":\"ACREEDORA\",\"nivel\":1,\"imputable\":true}")
+CUENTA2_BODY=$(echo "$CUENTA2_RESP" | head -n -1)
+CUENTA2_ID=$(echo "$CUENTA2_BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+if [ -n "$CUENTA_ID" ] && [ -n "$CUENTA2_ID" ]; then
+  ASIENTO_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/asientos?localId=$LOCAL_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"descripcion\":\"Asiento prueba $TS\",\"detalles\":[{\"cuentaId\":\"$CUENTA_ID\",\"debe\":5000,\"haber\":0},{\"cuentaId\":\"$CUENTA2_ID\",\"debe\":0,\"haber\":5000}]}")
+  ASIENTO_BODY=$(echo "$ASIENTO_RESP" | head -n -1)
+  ASIENTO_HTTP=$(echo "$ASIENTO_RESP" | tail -1)
+  check "POST /asientos (partida doble) → 201" "201" "$ASIENTO_HTTP"
+  ASIENTO_ID=$(echo "$ASIENTO_BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+  # Descuadrado → 400
+  check "POST /asientos (descuadrado) → 400" "400" \
+    "$(status -X POST "$BASE/asientos?localId=$LOCAL_ID" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"descripcion\":\"Roto\",\"detalles\":[{\"cuentaId\":\"$CUENTA_ID\",\"debe\":100,\"haber\":0},{\"cuentaId\":\"$CUENTA2_ID\",\"debe\":0,\"haber\":200}]}")"
+
+  check "GET /asientos → 200" "200" \
+    "$(status "$BASE/asientos" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  if [ -n "$ASIENTO_ID" ]; then
+    check "GET /asientos/:id → 200" "200" \
+      "$(status "$BASE/asientos/$ASIENTO_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+  else
+    echo "  ⚠ SKIP  GET /asientos/:id (requiere ASIENTO_ID)"
+  fi
+else
+  echo "  ⚠ SKIP  tests de asientos (requiere dos cuentas creadas)"
+fi
+
+# ── 9c. Cuentas por Cobrar y Pagar ──────────────────────
+echo ""
+echo "=== [9c] FINANZAS / CxC y CxP ==="
+check "GET /cuentas-cobrar → 200" "200" \
+  "$(status "$BASE/cuentas-cobrar" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "GET /cuentas-cobrar/resumen → 200" "200" \
+  "$(status "$BASE/cuentas-cobrar/resumen" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "GET /cuentas-pagar → 200" "200" \
+  "$(status "$BASE/cuentas-pagar" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "GET /cuentas-pagar/resumen → 200" "200" \
+  "$(status "$BASE/cuentas-pagar/resumen" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+# ── 9d. Bancos ────────────────────────────────────────────
+echo ""
+echo "=== [9d] FINANZAS / BANCOS ==="
+BANCOS_RESP=$(curl -s -w "\n%{http_code}" "$BASE/bancos/cuentas" \
+  -H "Authorization: Bearer $ADMIN_TOKEN")
+BANCOS_BODY=$(echo "$BANCOS_RESP" | head -n -1)
+BANCOS_HTTP=$(echo "$BANCOS_RESP" | tail -1)
+check "GET /bancos/cuentas → 200" "200" "$BANCOS_HTTP"
+BANCO_CUENTA_ID=$(echo "$BANCOS_BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+if [ -n "$BANCO_CUENTA_ID" ]; then
+  check "GET /bancos/cuentas/:id/movimientos → 200" "200" \
+    "$(status "$BASE/bancos/cuentas/$BANCO_CUENTA_ID/movimientos" \
+       -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  check "POST /bancos/movimientos (CREDITO) → 201" "201" \
+    "$(status -X POST "$BASE/bancos/movimientos" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"cuentaBancariaId\":\"$BANCO_CUENTA_ID\",\"tipo\":\"CREDITO\",\"monto\":10000,\"concepto\":\"Depósito test $TS\"}")"
+else
+  echo "  ⚠ SKIP  tests bancarios (sin cuentas bancarias en BD)"
+fi
+
+# ── 9e. Caja ─────────────────────────────────────────────
+echo ""
+echo "=== [9e] FINANZAS / CAJA ==="
+check "GET /caja/$LOCAL_ID → 200" "200" \
+  "$(status "$BASE/caja/$LOCAL_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "POST /caja/$LOCAL_ID/movimiento (INGRESO) → 201" "201" \
+  "$(status -X POST "$BASE/caja/$LOCAL_ID/movimiento" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"tipo\":\"INGRESO\",\"monto\":10000,\"concepto\":\"Venta efectivo test $TS\"}")"
+
+check "POST /caja/$LOCAL_ID/movimiento (EGRESO excede saldo) → 400" "400" \
+  "$(status -X POST "$BASE/caja/$LOCAL_ID/movimiento" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"tipo\":\"EGRESO\",\"monto\":9999999,\"concepto\":\"Gasto irreal\"}")"
+
+# ── 9f. Retenciones ──────────────────────────────────────
+echo ""
+echo "=== [9f] FINANZAS / RETENCIONES ==="
+check "GET /retenciones → 200" "200" \
+  "$(status "$BASE/retenciones" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "POST /retenciones?localId=$LOCAL_ID → 201" "201" \
+  "$(status -X POST "$BASE/retenciones?localId=$LOCAL_ID" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"tipo\":\"IVA\",\"numero\":\"RET-$TS\",\"proveedorNombre\":\"Proveedor SA\",\"importe\":210,\"alicuota\":10.5,\"baseImponible\":2000}")"
+
+# ============================================================
 echo ""
 echo "══════════════════════════════════════════════"
 TOTAL=$((PASS + FAIL))
