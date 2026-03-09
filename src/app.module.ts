@@ -11,6 +11,7 @@ import { EmpresasModule } from './empresas/empresas.module.js';
 import { LocalesModule } from './locales/locales.module.js';
 import { InventarioModule } from './inventario/inventario.module.js';
 import { VentasModule } from './ventas/ventas.module.js';
+import { ComprasModule } from './compras/compras.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -33,7 +34,8 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     LocalesModule,
     InventarioModule,
     VentasModule,
-    // ComprasModule,    ← Fase 8
+    ComprasModule,
+    // FinanzasModule,   ← Fase 9
     // FinanzasModule,   ← Fase 9
     // RrhhModule,       ← Fase 10
     // ProduccionModule, ← Fase 11
