@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { EmpresasModule } from './empresas/empresas.module.js';
 import { LocalesModule } from './locales/locales.module.js';
+import { InventarioModule } from './inventario/inventario.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -29,7 +30,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     UsuariosModule,
     EmpresasModule,
     LocalesModule,
-    // InventarioModule, ← Fase 6
+    InventarioModule,
     // VentasModule,     ← Fase 7
     // ComprasModule,    ← Fase 8
     // FinanzasModule,   ← Fase 9

@@ -251,6 +251,140 @@ check "PATCH /locales/:id (vendedor) → 403" "403" \
 
 # ============================================================
 echo ""
+echo "=== [6a/6] CATEGORIAS ==="
+check "GET /categorias sin token → 401" "401" \
+  "$(status "$BASE/categorias")"
+
+check "GET /categorias (admin) → 200" "200" \
+  "$(status "$BASE/categorias" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+CAT_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/categorias" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Cat Test Fase6","description":"Categoría de prueba"}')
+check "POST /categorias (admin) → 201" "201" "$CAT_CODE"
+
+check "POST /categorias (vendedor) → 403" "403" \
+  "$(status -X POST "$BASE/categorias" \
+     -H "Authorization: Bearer $VEND_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"name":"Cat Fail"}')"
+
+CAT_RESP=$(curl -s "$BASE/categorias" -H "Authorization: Bearer $ADMIN_TOKEN")
+CAT_ID=$(echo "$CAT_RESP" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+
+if [ -n "$CAT_ID" ]; then
+  check "PATCH /categorias/:id (admin) → 200" "200" \
+    "$(status -X PATCH "$BASE/categorias/$CAT_ID" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d '{"description":"Actualizada"}')"
+else
+  echo "  ⚠ SKIP  PATCH /categorias/:id"
+fi
+
+# ============================================================
+echo ""
+echo "=== [6b/6] DEPOSITOS ==="
+check "GET /depositos (admin) → 200" "200" \
+  "$(status "$BASE/depositos" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+DEP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/depositos" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"localId\":\"$LOCAL_ID\",\"code\":\"DEP$(date +%s | tail -c 4)\",\"name\":\"Depósito Test\"}")
+check "POST /depositos (admin) → 201" "201" "$DEP_CODE"
+
+check "POST /depositos (vendedor) → 403" "403" \
+  "$(status -X POST "$BASE/depositos" \
+     -H "Authorization: Bearer $VEND_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"localId\":\"$LOCAL_ID\",\"code\":\"FAIL\",\"name\":\"Fail\"}")"
+
+# ============================================================
+echo ""
+echo "=== [6c/6] PRODUCTOS ==="
+check "GET /productos (admin) → 200" "200" \
+  "$(status "$BASE/productos" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "GET /productos (vendedor) → 200" "200" \
+  "$(status "$BASE/productos" -H "Authorization: Bearer $VEND_TOKEN")"
+
+TS2=$(date +%s)
+PROD_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/productos" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"PROD-${TS2}\",\"name\":\"Producto Test\",\"tipo\":\"TERMINADO\",\"unit\":\"UNI\",\"cost\":500,\"price\":800,\"minStock\":10}")
+PROD_ID=$(echo "$PROD_RESP" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
+PROD_HTTP=$(echo "$PROD_RESP" | tail -1)
+check "POST /productos (admin) → 201" "201" "$PROD_HTTP"
+
+check "POST /productos (vendedor) → 403" "403" \
+  "$(status -X POST "$BASE/productos" \
+     -H "Authorization: Bearer $VEND_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"code":"FAIL","name":"Fail","tipo":"TERMINADO","unit":"UNI","cost":0,"price":0,"minStock":0}')"
+
+check "POST /productos código duplicado → 409" "409" \
+  "$(status -X POST "$BASE/productos" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"code\":\"PROD-${TS2}\",\"name\":\"Duplicado\",\"tipo\":\"TERMINADO\",\"unit\":\"UNI\",\"cost\":0,\"price\":0,\"minStock\":0}")"
+
+if [ -n "$PROD_ID" ]; then
+  check "GET /productos/:id (admin) → 200" "200" \
+    "$(status "$BASE/productos/$PROD_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  check "PATCH /productos/:id (admin) → 200" "200" \
+    "$(status -X PATCH "$BASE/productos/$PROD_ID" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d '{"price":900}')"
+else
+  echo "  ⚠ SKIP  GET/PATCH /productos/:id"
+fi
+
+check "GET /productos?stockBajo=true (admin) → 200" "200" \
+  "$(status "$BASE/productos?stockBajo=true" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+# ============================================================
+echo ""
+echo "=== [6d/6] INVENTARIO / STOCK / MOVIMIENTOS ==="
+check "GET /inventario/alertas (admin) → 200" "200" \
+  "$(status "$BASE/inventario/alertas" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "GET /inventario/stock/:localId (admin) → 200" "200" \
+  "$(status "$BASE/inventario/stock/$LOCAL_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+check "GET /movimientos-stock (admin) → 200" "200" \
+  "$(status "$BASE/movimientos-stock" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$PROD_ID" ]; then
+  # Ajuste positivo
+  AJ_POS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/inventario/ajuste?localId=$LOCAL_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"productoId\":\"$PROD_ID\",\"tipo\":\"AJUSTE_POSITIVO\",\"cantidad\":50,\"observaciones\":\"Test ingreso\"}")
+  check "POST /inventario/ajuste positivo → 201" "201" "$AJ_POS"
+
+  # Ajuste negativo con stock insuficiente (cantidad > stock)
+  AJ_NEG=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/inventario/ajuste?localId=$LOCAL_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"productoId\":\"$PROD_ID\",\"tipo\":\"AJUSTE_NEGATIVO\",\"cantidad\":9999,\"observaciones\":\"Test insuficiente\"}")
+  check "POST /inventario/ajuste negativo insuficiente → 400" "400" "$AJ_NEG"
+
+  check "GET /inventario/stock/producto/:id → 200" "200" \
+    "$(status "$BASE/inventario/stock/producto/$PROD_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  check "GET /movimientos-stock/producto/:id → 200" "200" \
+    "$(status "$BASE/movimientos-stock/producto/$PROD_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+else
+  echo "  ⚠ SKIP  tests de stock (no se creó producto de prueba)"
+fi
+
+# ============================================================
+echo ""
 echo "══════════════════════════════════════════════"
 TOTAL=$((PASS + FAIL))
 echo "  RESULTADO: $PASS/$TOTAL pruebas pasadas"
