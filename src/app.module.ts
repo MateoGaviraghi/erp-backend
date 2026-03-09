@@ -7,6 +7,9 @@ import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
+import { EmpresasModule } from './empresas/empresas.module.js';
+import { LocalesModule } from './locales/locales.module.js';
+import { InventarioModule } from './inventario/inventario.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -25,9 +28,9 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     PrismaModule,
     AuthModule,
     UsuariosModule,
-    // EmpresasModule,   ← Fase 5
-    // LocalesModule,    ← Fase 5
-    // InventarioModule, ← Fase 6
+    EmpresasModule,
+    LocalesModule,
+    InventarioModule,
     // VentasModule,     ← Fase 7
     // ComprasModule,    ← Fase 8
     // FinanzasModule,   ← Fase 9

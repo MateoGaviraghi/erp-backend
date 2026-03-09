@@ -21,6 +21,7 @@ import { UsuariosService } from './usuarios.service.js';
 import { CreateUsuarioDto } from './dto/create-usuario.dto.js';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto.js';
 import { FilterUsuarioDto } from './dto/filter-usuario.dto.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
@@ -45,7 +46,8 @@ export class UsuariosController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener usuario por ID' })
+  @Roles(UserRole.Administrador)
+  @ApiOperation({ summary: 'Obtener usuario por ID [Admin]' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: JwtPayload,
@@ -73,12 +75,12 @@ export class UsuariosController {
 
   @Patch(':id/password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cambiar contraseña de usuario' })
+  @ApiOperation({ summary: 'Cambiar contraseña (propio usuario o Admin)' })
   changePassword(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('password') password: string,
+    @Body() dto: ChangePasswordDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.usuariosService.changePassword(id, password, user);
+    return this.usuariosService.changePassword(id, dto.newPassword, user);
   }
 }
