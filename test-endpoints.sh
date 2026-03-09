@@ -2,7 +2,16 @@
 # ============================================================
 # test-endpoints.sh  —  ERP Backend · Fase 4 + Fase 5
 # ============================================================
-BASE="http://localhost:3001/api/v1"
+# Credenciales de seed — sobreescribir con variables de entorno si es necesario
+# Ejemplo: TEST_ADMIN_PASS=mipass bash test-endpoints.sh
+BASE="${TEST_BASE_URL:-http://localhost:3001/api/v1}"
+TEST_ADMIN_EMAIL="${TEST_ADMIN_EMAIL:-admin@empresa.com}"
+TEST_ADMIN_PASS="${TEST_ADMIN_PASS:-$(cat .env.test 2>/dev/null | grep ADMIN_PASS | cut -d= -f2)}"
+TEST_ADMIN_PASS="${TEST_ADMIN_PASS:-admin123}"
+TEST_VEND_EMAIL="${TEST_VEND_EMAIL:-vendedor@empresa.com}"
+TEST_VEND_PASS="${TEST_VEND_PASS:-vendedor123}"
+TEST_USER_PASS="${TEST_USER_PASS:-test123}"
+TEST_USER_NEW_PASS="${TEST_USER_NEW_PASS:-nuevo123}"
 PASS=0
 FAIL=0
 
@@ -27,13 +36,13 @@ echo ""
 echo "=== SETUP: obtener tokens ==="
 ADMIN_RESP=$(curl -s -X POST "$BASE/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@empresa.com","password":"admin123"}')
+  -d "{\"email\":\"$TEST_ADMIN_EMAIL\",\"password\":\"$TEST_ADMIN_PASS\"}")
 ADMIN_TOKEN=$(echo "$ADMIN_RESP" | grep -oP '"accessToken":"\K[^"]+')
 ADMIN_REFRESH=$(echo "$ADMIN_RESP" | grep -oP '"refreshToken":"\K[^"]+')
 
 VEND_RESP=$(curl -s -X POST "$BASE/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"vendedor@empresa.com","password":"vendedor123"}')
+  -d "{\"email\":\"$TEST_VEND_EMAIL\",\"password\":\"$TEST_VEND_PASS\"}")
 VEND_TOKEN=$(echo "$VEND_RESP" | grep -oP '"accessToken":"\K[^"]+')
 
 if [ -z "$ADMIN_TOKEN" ]; then echo "❌ No se pudo obtener token admin. ¿El servidor está corriendo?"; exit 1; fi
@@ -86,17 +95,17 @@ echo "=== [3/5] AUTH — login, profile, refresh, logout ==="
 check "POST /auth/login (admin) → 200" "200" \
   "$(status -X POST "$BASE/auth/login" \
      -H "Content-Type: application/json" \
-     -d '{"email":"admin@empresa.com","password":"admin123"}')"
+     -d "{\"email\":\"$TEST_ADMIN_EMAIL\",\"password\":\"$TEST_ADMIN_PASS\"}")"
 
 check "POST /auth/login (vendedor) → 200" "200" \
   "$(status -X POST "$BASE/auth/login" \
      -H "Content-Type: application/json" \
-     -d '{"email":"vendedor@empresa.com","password":"vendedor123"}')"
+     -d "{\"email\":\"$TEST_VEND_EMAIL\",\"password\":\"$TEST_VEND_PASS\"}")"
 
 check "POST /auth/login (credenciales inválidas) → 401" "401" \
   "$(status -X POST "$BASE/auth/login" \
      -H "Content-Type: application/json" \
-     -d '{"email":"nadie@empresa.com","password":"wrongpass"}')"
+     -d '{"email":"nadie@empresa.com","password":"__invalid__"}')"
 
 check "GET /auth/profile (admin) → 200" "200" \
   "$(status "$BASE/auth/profile" -H "Authorization: Bearer $ADMIN_TOKEN")"
@@ -112,7 +121,7 @@ check "POST /auth/logout (admin) → 200" "200" \
 # Re-login admin after logout
 ADMIN_RESP2=$(curl -s -X POST "$BASE/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@empresa.com","password":"admin123"}')
+  -d "{\"email\":\"$TEST_ADMIN_EMAIL\",\"password\":\"$TEST_ADMIN_PASS\"}")
 ADMIN_TOKEN=$(echo "$ADMIN_RESP2" | grep -oP '"accessToken":"\K[^"]+')
 
 # ============================================================
@@ -136,7 +145,7 @@ TS=$(date +%s)
 NEW_USER_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/usuarios" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"nombre\":\"Test User\",\"email\":\"test_${TS}@empresa.com\",\"password\":\"test123\",\"rol\":\"Vendedor\",\"localId\":\"$LOCAL_ID\"}")
+  -d "{\"nombre\":\"Test User\",\"email\":\"test_${TS}@empresa.com\",\"password\":\"$TEST_USER_PASS\",\"rol\":\"Vendedor\",\"localId\":\"$LOCAL_ID\"}")
 NEW_USER_ID=$(echo "$NEW_USER_RESP" | grep -oP '"id":"\K[0-9a-f-]{36}' | head -1)
 NEW_USER_CODE=$(echo "$NEW_USER_RESP" | tail -1)
 check "POST /usuarios (admin crea usuario) → 201" "201" "$NEW_USER_CODE"
@@ -145,7 +154,7 @@ check "POST /usuarios (vendedor) → 403" "403" \
   "$(status -X POST "$BASE/usuarios" \
      -H "Authorization: Bearer $VEND_TOKEN" \
      -H "Content-Type: application/json" \
-     -d '{"nombre":"X","email":"x@x.com","password":"123456","rol":"Vendedor"}')"
+     -d '{"nombre":"X","email":"x@x.com","password":"anypass1","rol":"Vendedor"}')"
 
 if [ -n "$NEW_USER_ID" ]; then
   check "PATCH /usuarios/:id (admin actualiza) → 200" "200" \
@@ -158,7 +167,7 @@ if [ -n "$NEW_USER_ID" ]; then
     "$(status -X PATCH "$BASE/usuarios/$NEW_USER_ID/password" \
        -H "Authorization: Bearer $ADMIN_TOKEN" \
        -H "Content-Type: application/json" \
-       -d '{"currentPassword":"test123","newPassword":"nuevo123"}')"
+       -d "{\"currentPassword\":\"$TEST_USER_PASS\",\"newPassword\":\"$TEST_USER_NEW_PASS\"}")"
 else
   echo "  ⚠ SKIP  PATCH /usuarios (no se creó usuario de prueba)"
   echo "  ⚠ SKIP  PATCH /usuarios/:id/password"
@@ -261,7 +270,7 @@ check "GET /categorias (admin) → 200" "200" \
 CAT_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/categorias" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Cat Test Fase6","description":"Categoría de prueba"}')
+  -d "{\"name\":\"Cat Test $(date +%s)\",\"description\":\"Categoría de prueba\"}")
 check "POST /categorias (admin) → 201" "201" "$CAT_CODE"
 
 check "POST /categorias (vendedor) → 403" "403" \
