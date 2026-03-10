@@ -27,7 +27,8 @@ describe('AppController', () => {
     it('should return health status', async () => {
       const result = await appController.check();
       expect(result).toHaveProperty('status', 'ok');
-      expect(result).toHaveProperty('database', 'connected');
+      expect(result).toHaveProperty('database');
+      expect((result as any).database).toHaveProperty('status', 'ok');
     });
   });
 });
