@@ -15,6 +15,7 @@ import { ComprasModule } from './compras/compras.module.js';
 import { FinanzasModule } from './finanzas/finanzas.module.js';
 import { RrhhModule } from './rrhh/rrhh.module.js';
 import { ProduccionModule } from './produccion/produccion.module.js';
+import { ReportesModule } from './reportes/reportes.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -41,7 +42,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     FinanzasModule,
     RrhhModule,
     ProduccionModule,
-    // ReportesModule,   ← Fase 12
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [

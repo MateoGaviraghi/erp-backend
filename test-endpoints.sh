@@ -1231,6 +1231,71 @@ check "GET /planificacion/materiales → 200" "200" \
   "$(status "$BASE/planificacion/materiales" -H "Authorization: Bearer $ADMIN_TOKEN")"
 
 # ============================================================
+# FASE 12 — REPORTES
+# ============================================================
+
+echo ""
+echo "=== [12a] REPORTES / DASHBOARD ==="
+
+check "GET /reportes/dashboard → 200" "200" \
+  "$(status "$BASE/reportes/dashboard" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+echo ""
+echo "=== [12b] REPORTES / VENTAS ==="
+
+check "GET /reportes/ventas?formato=json → 200" "200" \
+  "$(status "$BASE/reportes/ventas?desde=2026-01-01&hasta=2026-12-31&formato=json" \
+     -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+XLSX_CT=$(curl -s -o /dev/null -w "%{content_type}" \
+  "$BASE/reportes/ventas?desde=2026-01-01&hasta=2026-12-31&formato=xlsx" \
+  -H "Authorization: Bearer $ADMIN_TOKEN")
+if echo "$XLSX_CT" | grep -q "spreadsheetml"; then
+  check "GET /reportes/ventas?formato=xlsx → spreadsheetml" "spreadsheetml" "spreadsheetml"
+else
+  check "GET /reportes/ventas?formato=xlsx → spreadsheetml" "spreadsheetml" "$XLSX_CT"
+fi
+
+echo ""
+echo "=== [12c] REPORTES / INVENTARIO ==="
+
+check "GET /reportes/inventario?formato=json → 200" "200" \
+  "$(status "$BASE/reportes/inventario?formato=json" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+XLSX_INV_CT=$(curl -s -o /dev/null -w "%{content_type}" \
+  "$BASE/reportes/inventario?formato=xlsx" \
+  -H "Authorization: Bearer $ADMIN_TOKEN")
+if echo "$XLSX_INV_CT" | grep -q "spreadsheetml"; then
+  check "GET /reportes/inventario?formato=xlsx → spreadsheetml" "spreadsheetml" "spreadsheetml"
+else
+  check "GET /reportes/inventario?formato=xlsx → spreadsheetml" "spreadsheetml" "$XLSX_INV_CT"
+fi
+
+echo ""
+echo "=== [12d] REPORTES / COMPRAS ==="
+
+check "GET /reportes/compras?desde=&hasta= → 200" "200" \
+  "$(status "$BASE/reportes/compras?desde=2026-01-01&hasta=2026-12-31" \
+     -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+echo ""
+echo "=== [12e] REPORTES / RRHH ==="
+
+check "GET /reportes/rrhh (Vendedor) → 403" "403" \
+  "$(status "$BASE/reportes/rrhh" -H "Authorization: Bearer $VEND_TOKEN")"
+
+check "GET /reportes/rrhh (Admin) → 200" "200" \
+  "$(status "$BASE/reportes/rrhh?desde=2026-01-01&hasta=2026-12-31&formato=json" \
+     -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+echo ""
+echo "=== [12f] REPORTES / RESULTADOS ==="
+
+check "GET /reportes/resultados → 200" "200" \
+  "$(status "$BASE/reportes/resultados?desde=2026-01-01&hasta=2026-12-31" \
+     -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+# ============================================================
 echo ""
 echo "══════════════════════════════════════════════"
 TOTAL=$((PASS + FAIL))
