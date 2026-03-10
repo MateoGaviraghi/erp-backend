@@ -6,13 +6,26 @@ export class AppService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getHealth() {
-    await this.prisma.$queryRaw`SELECT 1`;
+    let dbStatus = 'ok';
+    let dbLatencyMs = 0;
+
+    try {
+      const start = Date.now();
+      await this.prisma.$queryRaw`SELECT 1`;
+      dbLatencyMs = Date.now() - start;
+    } catch {
+      dbStatus = 'error';
+    }
+
     return {
-      status: 'ok',
+      status: dbStatus === 'ok' ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
-      database: 'connected',
-      version: '1.0.0',
-      environment: process.env.NODE_ENV,
+      uptime: Math.floor(process.uptime()),
+      version: process.env.npm_package_version ?? '1.0.0',
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+      },
     };
   }
 }
