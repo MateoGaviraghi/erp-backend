@@ -13,6 +13,8 @@ import { InventarioModule } from './inventario/inventario.module.js';
 import { VentasModule } from './ventas/ventas.module.js';
 import { ComprasModule } from './compras/compras.module.js';
 import { FinanzasModule } from './finanzas/finanzas.module.js';
+import { RrhhModule } from './rrhh/rrhh.module.js';
+import { ProduccionModule } from './produccion/produccion.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -37,8 +39,8 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     VentasModule,
     ComprasModule,
     FinanzasModule,
-    // RrhhModule,       ← Fase 10
-    // ProduccionModule, ← Fase 11
+    RrhhModule,
+    ProduccionModule,
     // ReportesModule,   ← Fase 12
   ],
   controllers: [AppController],
