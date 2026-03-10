@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -15,6 +15,7 @@ import { ComprasModule } from './compras/compras.module.js';
 import { FinanzasModule } from './finanzas/finanzas.module.js';
 import { RrhhModule } from './rrhh/rrhh.module.js';
 import { ProduccionModule } from './produccion/produccion.module.js';
+import { ReportesModule } from './reportes/reportes.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -41,11 +42,15 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     FinanzasModule,
     RrhhModule,
     ProduccionModule,
-    // ReportesModule,   ← Fase 12
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard, // rate limiting global — use @SkipThrottle() para eximir
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, // autenticación global — use @Public() para endpoints públicos

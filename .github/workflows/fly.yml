@@ -1,4 +1,4 @@
-name: Deploy to Fly.io
+name: Deploy — Backend a Fly.io
 
 on:
   push:
@@ -7,15 +7,46 @@ on:
 
 jobs:
   deploy:
-    name: Deploy app
+    name: Deploy
     runs-on: ubuntu-latest
-    concurrency: deploy-group
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false # No cancelar deploys en curso
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout código
+        uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Deploy to Fly.io
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar cliente Prisma
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+
+      - name: Ejecutar migraciones de Prisma
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DIRECT_URL }} # Usar URL directa para migraciones
+
+      - name: Deploy a Fly.io
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: flyctl deploy
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Health check post-deploy
+        run: |
+          echo "Esperando que la app esté disponible..."
+          sleep 15
+          curl -f https://erp-backend.fly.dev/api/v1/health || exit 1

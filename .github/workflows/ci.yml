@@ -1,0 +1,51 @@
+name: CI — Backend
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    name: Lint y Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar cliente Prisma
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Tests unitarios
+        run: npm run test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Tests e2e (opcional)
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        continue-on-error: true
