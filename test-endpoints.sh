@@ -898,6 +898,179 @@ check "POST /retenciones?localId=$LOCAL_ID → 201" "201" \
      -d "{\"tipo\":\"IVA\",\"numero\":\"RET-$TS\",\"proveedorNombre\":\"Proveedor SA\",\"importe\":210,\"alicuota\":10.5,\"baseImponible\":2000}")"
 
 # ============================================================
+# ███████╗ █████╗ ███████╗███████╗    ██╗ ██████╗
+# ██╔════╝██╔══██╗██╔════╝██╔════╝   ███║██╔═████╗
+# █████╗  ███████║███████╗█████╗     ╚██║██║██╔██║
+# ██╔══╝  ██╔══██║╚════██║██╔══╝      ██║████╔╝██║
+# ██║     ██║  ██║███████║███████╗    ██║╚██████╔╝
+# ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝ ╚═════╝
+echo ""
+echo "=== [FASE 10] RRHH ==="
+
+# ── 10a. Empleados ────────────────────────────────────────
+echo ""
+echo "=== [10a] RRHH / EMPLEADOS ==="
+
+EMP_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/empleados?localId=$LOCAL_ID" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"EMP-$TS\",\"name\":\"Rodriguez Maria Fernanda $TS\",\"position\":\"Asistente\",\"department\":\"Administracion\",\"salary\":280000,\"hireDate\":\"2024-06-01\"}")
+EMP_BODY=$(echo "$EMP_RESP" | head -n -1)
+EMP_HTTP=$(echo "$EMP_RESP" | tail -1)
+check "POST /empleados → 201" "201" "$EMP_HTTP"
+EMP_ID=$(echo "$EMP_BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+# Legajo duplicado → 409
+check "POST /empleados (code duplicado) → 409" "409" \
+  "$(status -X POST "$BASE/empleados?localId=$LOCAL_ID" \
+     -H "Authorization: Bearer $ADMIN_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"code\":\"EMP-$TS\",\"name\":\"Otro\",\"position\":\"Otro\",\"department\":\"Otro\",\"salary\":100000,\"hireDate\":\"2024-01-01\"}")"
+
+check "GET /empleados → 200" "200" \
+  "$(status "$BASE/empleados" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$EMP_ID" ]; then
+  check "GET /empleados/:id → 200" "200" \
+    "$(status "$BASE/empleados/$EMP_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  check "PATCH /empleados/:id → 200" "200" \
+    "$(status -X PATCH "$BASE/empleados/$EMP_ID" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"position\":\"Asistente Senior\"}")"
+else
+  echo "  ⚠ SKIP  tests de empleado (sin EMP_ID)"
+fi
+
+# ── 10b. Asistencias ─────────────────────────────────────
+echo ""
+echo "=== [10b] RRHH / ASISTENCIAS ==="
+check "GET /asistencias → 200" "200" \
+  "$(status "$BASE/asistencias" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$EMP_ID" ]; then
+  check "POST /asistencias → 201" "201" \
+    "$(status -X POST "$BASE/asistencias" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"empleadoId\":\"$EMP_ID\",\"fecha\":\"2026-02-18\",\"ausente\":false,\"entrada\":\"2026-02-18T09:00:00Z\",\"salida\":\"2026-02-18T18:00:00Z\"}")"
+
+  # Duplicado → 409
+  check "POST /asistencias (fecha duplicada) → 409" "409" \
+    "$(status -X POST "$BASE/asistencias" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"empleadoId\":\"$EMP_ID\",\"fecha\":\"2026-02-18\",\"ausente\":false}")"
+else
+  echo "  ⚠ SKIP  tests de asistencias (sin EMP_ID)"
+fi
+
+# ── 10c. Horas ───────────────────────────────────────────
+echo ""
+echo "=== [10c] RRHH / HORAS ==="
+check "GET /horas → 200" "200" \
+  "$(status "$BASE/horas" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$EMP_ID" ]; then
+  check "POST /horas → 201" "201" \
+    "$(status -X POST "$BASE/horas" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"empleadoId\":\"$EMP_ID\",\"fecha\":\"2026-02-18\",\"horasNormales\":9,\"horasExtra\":1,\"descripcion\":\"Dia regular\"}")"
+
+  check "GET /empleados/:id/resumen-horas?mes=2&anio=2026 → 200" "200" \
+    "$(status "$BASE/empleados/$EMP_ID/resumen-horas?mes=2&anio=2026" \
+       -H "Authorization: Bearer $ADMIN_TOKEN")"
+else
+  echo "  ⚠ SKIP  tests de horas (sin EMP_ID)"
+fi
+
+# ── 10d. Liquidaciones ───────────────────────────────────
+echo ""
+echo "=== [10d] RRHH / LIQUIDACIONES ==="
+check "GET /liquidaciones → 200" "200" \
+  "$(status "$BASE/liquidaciones" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+if [ -n "$EMP_ID" ]; then
+  LIQ_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/liquidaciones" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"empleadoId\":\"$EMP_ID\",\"periodo\":\"2026-02\",\"sueldobruto\":280000,\"deducciones\":39480,\"notas\":\"Febrero 2026\"}")
+  LIQ_BODY=$(echo "$LIQ_RESP" | head -n -1)
+  LIQ_HTTP=$(echo "$LIQ_RESP" | tail -1)
+  check "POST /liquidaciones → 201" "201" "$LIQ_HTTP"
+  LIQ_ID=$(echo "$LIQ_BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+  # Período duplicado → 400
+  check "POST /liquidaciones (período duplicado) → 400" "400" \
+    "$(status -X POST "$BASE/liquidaciones" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"empleadoId\":\"$EMP_ID\",\"periodo\":\"2026-02\",\"sueldobruto\":280000}")"
+
+  if [ -n "$LIQ_ID" ]; then
+    check "GET /liquidaciones/:id → 200" "200" \
+      "$(status "$BASE/liquidaciones/$LIQ_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    check "PATCH /liquidaciones/:id/aprobar → 200" "200" \
+      "$(status -X PATCH "$BASE/liquidaciones/$LIQ_ID/aprobar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    # Ya aprobada → 404
+    check "PATCH /liquidaciones/:id/aprobar (ya aprobada) → 404" "404" \
+      "$(status -X PATCH "$BASE/liquidaciones/$LIQ_ID/aprobar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN")"
+  else
+    echo "  ⚠ SKIP  tests de liquidación detalle (sin LIQ_ID)"
+  fi
+else
+  echo "  ⚠ SKIP  tests de liquidaciones (sin EMP_ID)"
+fi
+
+# ── 10e. Vacaciones ──────────────────────────────────────
+echo ""
+echo "=== [10e] RRHH / VACACIONES ==="
+
+if [ -n "$EMP_ID" ]; then
+  VAC_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/vacaciones" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"empleadoId\":\"$EMP_ID\",\"fechaDesde\":\"2026-07-07\",\"fechaHasta\":\"2026-07-18\",\"notas\":\"Vacaciones invierno\"}")
+  VAC_BODY=$(echo "$VAC_RESP" | head -n -1)
+  VAC_HTTP=$(echo "$VAC_RESP" | tail -1)
+  check "POST /vacaciones → 201" "201" "$VAC_HTTP"
+  VAC_ID=$(echo "$VAC_BODY" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+  # fecha hasta < fecha desde → 400
+  check "POST /vacaciones (fechaHasta < fechaDesde) → 400" "400" \
+    "$(status -X POST "$BASE/vacaciones" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"empleadoId\":\"$EMP_ID\",\"fechaDesde\":\"2026-08-18\",\"fechaHasta\":\"2026-08-01\"}")"
+
+  check "GET /vacaciones/empleado/:id → 200" "200" \
+    "$(status "$BASE/vacaciones/empleado/$EMP_ID" -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+  if [ -n "$VAC_ID" ]; then
+    check "PATCH /vacaciones/:id/aprobar → 200" "200" \
+      "$(status -X PATCH "$BASE/vacaciones/$VAC_ID/aprobar" \
+         -H "Authorization: Bearer $ADMIN_TOKEN")"
+
+    # Solapamiento con aprobada → 400
+    check "POST /vacaciones (solapamiento) → 400" "400" \
+      "$(status -X POST "$BASE/vacaciones" \
+         -H "Authorization: Bearer $ADMIN_TOKEN" \
+         -H "Content-Type: application/json" \
+         -d "{\"empleadoId\":\"$EMP_ID\",\"fechaDesde\":\"2026-07-10\",\"fechaHasta\":\"2026-07-15\"}")"
+  else
+    echo "  ⚠ SKIP  aprobar/rechazar vacaciones (sin VAC_ID)"
+  fi
+else
+  echo "  ⚠ SKIP  tests de vacaciones (sin EMP_ID)"
+fi
+
+# ============================================================
 echo ""
 echo "══════════════════════════════════════════════"
 TOTAL=$((PASS + FAIL))
