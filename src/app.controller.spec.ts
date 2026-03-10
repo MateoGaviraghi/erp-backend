@@ -28,7 +28,7 @@ describe('AppController', () => {
       const result = await appController.check();
       expect(result).toHaveProperty('status', 'ok');
       expect(result).toHaveProperty('database');
-      expect((result as any).database).toHaveProperty('status', 'ok');
+      expect(result).toHaveProperty('database.status', 'ok');
     });
   });
 });
