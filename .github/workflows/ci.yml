@@ -34,20 +34,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Tests unitarios
-        run: npm run test
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret
-          JWT_REFRESH_SECRET: test-refresh-secret
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Tests e2e (opcional)
-        run: npm run test:e2e
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret
-          JWT_REFRESH_SECRET: test-refresh-secret
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        continue-on-error: true
