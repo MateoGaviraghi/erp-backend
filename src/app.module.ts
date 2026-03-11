@@ -18,6 +18,7 @@ import { ProduccionModule } from './produccion/produccion.module.js';
 import { ReportesModule } from './reportes/reportes.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
+import { AlertingService } from './common/services/alerting.service.js';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
   controllers: [AppController],
   providers: [
     AppService,
+    AlertingService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard, // rate limiting global — use @SkipThrottle() para eximir
@@ -60,5 +62,6 @@ import { RolesGuard } from './common/guards/roles.guard.js';
       useClass: RolesGuard, // roles global
     },
   ],
+  exports: [AlertingService],
 })
 export class AppModule {}
