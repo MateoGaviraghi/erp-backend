@@ -56,6 +56,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         } as Record<string, unknown>,
       );
 
+      if (response.headersSent) return;
       return response.status(prismaResult.statusCode).json({
         success: false,
         error: {
@@ -108,6 +109,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
+    if (response.headersSent) return;
     response.status(statusCode).json({
       success: false,
       error: {
