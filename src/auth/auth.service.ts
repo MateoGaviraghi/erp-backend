@@ -5,10 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto.js';
 import type { StringValue } from 'ms';
-import {
-  JwtPayload,
-  JwtRefreshPayload,
-} from './interfaces/jwt-payload.interface.js';
+import { JwtPayload } from './interfaces/jwt-payload.interface.js';
 
 @Injectable()
 export class AuthService {
@@ -49,7 +46,6 @@ export class AuthService {
 
     return {
       accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
       user: {
         id: usuario.id,
         nombre: usuario.nombre,
@@ -61,37 +57,7 @@ export class AuthService {
     };
   }
 
-  async refresh(usuarioId: string, tokenId: string) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
-    });
-
-    if (!usuario || !usuario.active) {
-      throw new UnauthorizedException('Usuario inactivo');
-    }
-
-    // Revocar el refresh token usado (rotación de tokens)
-    await this.prisma.refreshToken.update({
-      where: { id: tokenId },
-      data: { revoked: true },
-    });
-
-    return this.generateTokens(usuario);
-  }
-
-  async logout(usuarioId: string, tokenId?: string) {
-    if (tokenId) {
-      await this.prisma.refreshToken.updateMany({
-        where: { id: tokenId, usuarioId },
-        data: { revoked: true },
-      });
-    } else {
-      await this.prisma.refreshToken.updateMany({
-        where: { usuarioId, revoked: false },
-        data: { revoked: true },
-      });
-    }
-
+  async logout(usuarioId: string) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: { empresaId: true, nombre: true },
@@ -132,41 +98,11 @@ export class AuthService {
       localId: usuario.localId,
     };
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const savedToken = await this.prisma.refreshToken.create({
-      data: {
-        usuarioId: usuario.id,
-        token: 'placeholder',
-        expiresAt,
-        revoked: false,
-      },
+    const accessToken = await this.jwtService.signAsync(payload as object, {
+      secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+      expiresIn: this.configService.getOrThrow<StringValue>('JWT_EXPIRES_IN'),
     });
 
-    const refreshPayload: JwtRefreshPayload = {
-      sub: usuario.id,
-      tokenId: savedToken.id,
-    };
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload as object, {
-        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-        expiresIn: this.configService.getOrThrow<StringValue>('JWT_EXPIRES_IN'),
-      }),
-      this.jwtService.signAsync(refreshPayload as object, {
-        secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.getOrThrow<StringValue>(
-          'JWT_REFRESH_EXPIRES_IN',
-        ),
-      }),
-    ]);
-
-    await this.prisma.refreshToken.update({
-      where: { id: savedToken.id },
-      data: { token: refreshToken },
-    });
-
-    return { accessToken, refreshToken };
+    return { accessToken };
   }
 }

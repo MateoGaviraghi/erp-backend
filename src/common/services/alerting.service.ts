@@ -108,17 +108,17 @@ export class AlertingService implements OnModuleInit {
         Array<{
           name: string;
           cantidad: number;
-          stockMinimo: number;
+          minStock: number;
           local: string;
         }>
       >`
-        SELECT p."name", s.cantidad, p."stockMinimo", l.nombre as local
-        FROM "Stock" s
-        JOIN "Producto" p ON s."productoId" = p.id
-        JOIN "Local" l ON s."localId" = l.id
-        WHERE p."stockMinimo" IS NOT NULL
-          AND s.cantidad <= p."stockMinimo"
-          AND p.activo = true
+        SELECT p."name", s.cantidad, p."minStock", l."name" as local
+        FROM "stock" s
+        JOIN "productos" p ON s."productoId" = p.id
+        JOIN "locales" l ON s."localId" = l.id
+        WHERE p."minStock" IS NOT NULL
+          AND s.cantidad <= p."minStock"
+          AND p.active = true
       `;
 
       if (alertas.length > 0) {
@@ -129,7 +129,7 @@ export class AlertingService implements OnModuleInit {
             productos: alertas.slice(0, 10).map((a) => ({
               nombre: a.name,
               stock: Number(a.cantidad),
-              minimo: Number(a.stockMinimo),
+              minimo: Number(a.minStock),
               local: a.local,
             })),
           },
@@ -146,14 +146,14 @@ export class AlertingService implements OnModuleInit {
     try {
       const trabadas = await this.prisma.$queryRaw<
         Array<{
-          numero: string;
+          code: string;
           fechaFinPlanificada: Date;
           estado: string;
           createdAt: Date;
         }>
       >`
-        SELECT op.numero, op."fechaFinPlanificada", op.estado, op."createdAt"
-        FROM "OrdenProduccion" op
+        SELECT op.code, op."fechaFinPlanificada", op.estado, op."createdAt"
+        FROM "ordenes_produccion" op
         WHERE op.estado = 'EN_PROCESO'
           AND op."fechaFinPlanificada" < NOW() - INTERVAL '2 days'
       `;
@@ -164,7 +164,7 @@ export class AlertingService implements OnModuleInit {
           `⚠ ${trabadas.length} orden(es) de producción en proceso superaron la fecha planificada por +2 días`,
           {
             ordenes: trabadas.slice(0, 5).map((o) => ({
-              numero: o.numero,
+              numero: o.code,
               fechaPlanificada: o.fechaFinPlanificada,
               estado: o.estado,
             })),
@@ -182,13 +182,13 @@ export class AlertingService implements OnModuleInit {
     try {
       const inconsistentes: Array<{
         id: string;
-        totalBruto: number;
-        totalDescuentos: number;
-        totalNeto: number;
+        sueldobruto: number;
+        deducciones: number;
+        sueldoNeto: number;
       }> = await this.prisma.$queryRaw`
-        SELECT l.id, l."totalBruto", l."totalDescuentos", l."totalNeto"
-        FROM "Liquidacion" l
-        WHERE ABS(l."totalBruto" - l."totalDescuentos" - l."totalNeto") > 0.02
+        SELECT l.id, l."sueldobruto", l."deducciones", l."sueldoNeto"
+        FROM "liquidaciones" l
+        WHERE ABS(l."sueldobruto" - l."deducciones" - l."sueldoNeto") > 0.02
       `;
 
       if (inconsistentes.length > 0) {

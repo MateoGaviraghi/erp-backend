@@ -152,11 +152,6 @@ export class UsuariosService {
       data: { password: passwordHash },
     });
 
-    await this.prisma.refreshToken.updateMany({
-      where: { usuarioId: id, revoked: false },
-      data: { revoked: true },
-    });
-
     return {
       message:
         'Contraseña actualizada. El usuario debe iniciar sesión nuevamente.',

@@ -174,7 +174,7 @@ enum EstadoCuentaPagar {
 }
 
 model Empresa {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @db.Uuid
   code      String   @unique
   name      String
   taxId     String   @unique
@@ -207,8 +207,8 @@ model Empresa {
 }
 
 model Local {
-  id        String   @id @default(uuid())
-  empresaId String
+  id        String   @id @default(uuid()) @db.Uuid
+  empresaId String   @db.Uuid
   code      String
   name      String
   address   String?
@@ -247,9 +247,9 @@ model Local {
 }
 
 model Usuario {
-  id        String   @id @default(uuid())
-  empresaId String
-  localId   String?
+  id        String   @id @default(uuid()) @db.Uuid
+  empresaId String   @db.Uuid
+  localId   String?  @db.Uuid
   nombre    String
   email     String   @unique
   password  String
@@ -260,30 +260,15 @@ model Usuario {
 
   empresa       Empresa        @relation(fields: [empresaId], references: [id])
   local         Local?         @relation(fields: [localId], references: [id])
-  refreshTokens RefreshToken[]
   auditoriaLogs AuditoriaLog[]
 
   @@map("usuarios")
 }
 
-model RefreshToken {
-  id        String   @id @default(uuid())
-  usuarioId String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  revoked   Boolean  @default(false)
-
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
-  @@index([usuarioId])
-  @@map("refresh_tokens")
-}
-
 model Cliente {
-  id          String   @id @default(uuid())
-  empresaId   String
-  localId     String
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @db.Uuid
+  localId     String   @db.Uuid
   code        String
   name        String
   taxId       String?
@@ -312,10 +297,10 @@ model Cliente {
 }
 
 model SeguimientoCliente {
-  id                 String          @id @default(uuid())
-  empresaId          String
-  localId            String
-  clienteId          String
+  id                 String          @id @default(uuid()) @db.Uuid
+  empresaId          String          @db.Uuid
+  localId            String          @db.Uuid
+  clienteId          String          @db.Uuid
   tipo               TipoInteraccion
   fecha              DateTime
   asunto             String
@@ -335,9 +320,9 @@ model SeguimientoCliente {
 }
 
 model Proveedor {
-  id           String   @id @default(uuid())
-  empresaId    String
-  localId      String
+  id           String   @id @default(uuid()) @db.Uuid
+  empresaId    String   @db.Uuid
+  localId      String   @db.Uuid
   code         String
   name         String
   taxId        String?
@@ -363,13 +348,13 @@ model Proveedor {
 }
 
 model Categoria {
-  id          String    @id @default(uuid())
-  empresaId   String
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @db.Uuid
   name        String
   description String?
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   productos Producto[]
 
@@ -378,12 +363,12 @@ model Categoria {
 }
 
 model Producto {
-  id          String       @id @default(uuid())
-  empresaId   String
+  id          String       @id @default(uuid()) @db.Uuid
+  empresaId   String       @db.Uuid
   code        String
   name        String
   description String?
-  categoriaId String?
+  categoriaId String?      @db.Uuid
   tipo        TipoProducto @default(TERMINADO)
   unit        String       @default("UNI")
   cost        Decimal      @default(0) @db.Decimal(15, 2)
@@ -408,9 +393,9 @@ model Producto {
 }
 
 model Deposito {
-  id        String   @id @default(uuid())
-  empresaId String
-  localId   String
+  id        String   @id @default(uuid()) @db.Uuid
+  empresaId String   @db.Uuid
+  localId   String   @db.Uuid
   code      String
   name      String
   address   String?
@@ -426,12 +411,12 @@ model Deposito {
 }
 
 model Stock {
-  id         String  @id @default(uuid())
-  empresaId  String
-  localId    String
-  depositoId String?
-  productoId String
-  cantidad   Decimal @default(0) @db.Decimal(15, 3)
+  id         String   @id @default(uuid()) @db.Uuid
+  empresaId  String   @db.Uuid
+  localId    String   @db.Uuid
+  depositoId String?  @db.Uuid
+  productoId String   @db.Uuid
+  cantidad   Decimal  @default(0) @db.Decimal(15, 3)
   updatedAt  DateTime @updatedAt
 
   local    Local     @relation(fields: [localId], references: [id])
@@ -444,11 +429,11 @@ model Stock {
 }
 
 model MovimientoStock {
-  id             String              @id @default(uuid())
-  empresaId      String
-  localId        String
-  localDestinoId String?
-  productoId     String
+  id             String              @id @default(uuid()) @db.Uuid
+  empresaId      String              @db.Uuid
+  localId        String              @db.Uuid
+  localDestinoId String?             @db.Uuid
+  productoId     String              @db.Uuid
   tipo           TipoMovimientoStock
   cantidad       Decimal             @db.Decimal(15, 3)
   referencia     String?
@@ -468,11 +453,11 @@ model MovimientoStock {
 }
 
 model Presupuesto {
-  id               String            @id @default(uuid())
-  empresaId        String
-  localId          String
+  id               String            @id @default(uuid()) @db.Uuid
+  empresaId        String            @db.Uuid
+  localId          String            @db.Uuid
   numero           String
-  clienteId        String
+  clienteId        String            @db.Uuid
   fecha            DateTime
   fechaVencimiento DateTime
   subtotal         Decimal           @db.Decimal(15, 2)
@@ -485,8 +470,8 @@ model Presupuesto {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  local   Local           @relation(fields: [localId], references: [id])
-  cliente Cliente         @relation(fields: [clienteId], references: [id])
+  local   Local             @relation(fields: [localId], references: [id])
+  cliente Cliente           @relation(fields: [clienteId], references: [id])
   items   ItemPresupuesto[]
   pedido  PedidoVenta?
 
@@ -498,9 +483,9 @@ model Presupuesto {
 }
 
 model ItemPresupuesto {
-  id             String  @id @default(uuid())
-  presupuestoId  String
-  productoId     String
+  id             String  @id @default(uuid()) @db.Uuid
+  presupuestoId  String  @db.Uuid
+  productoId     String  @db.Uuid
   productoNombre String
   cantidad       Decimal @db.Decimal(15, 3)
   precioUnitario Decimal @db.Decimal(15, 2)
@@ -514,12 +499,12 @@ model ItemPresupuesto {
 }
 
 model PedidoVenta {
-  id                   String       @id @default(uuid())
-  empresaId            String
-  localId              String
+  id                   String       @id @default(uuid()) @db.Uuid
+  empresaId            String       @db.Uuid
+  localId              String       @db.Uuid
   numero               String
-  presupuestoId        String?      @unique
-  clienteId            String
+  presupuestoId        String?      @unique @db.Uuid
+  clienteId            String       @db.Uuid
   fecha                DateTime
   fechaEntregaEstimada DateTime
   fechaEntregaReal     DateTime?
@@ -547,9 +532,9 @@ model PedidoVenta {
 }
 
 model ItemPedido {
-  id                String  @id @default(uuid())
-  pedidoId          String
-  productoId        String
+  id                String  @id @default(uuid()) @db.Uuid
+  pedidoId          String  @db.Uuid
+  productoId        String  @db.Uuid
   productoNombre    String
   cantidad          Decimal @db.Decimal(15, 3)
   cantidadEntregada Decimal @default(0) @db.Decimal(15, 3)
@@ -564,12 +549,12 @@ model ItemPedido {
 }
 
 model Factura {
-  id               String        @id @default(uuid())
-  empresaId        String
-  localId          String
+  id               String        @id @default(uuid()) @db.Uuid
+  empresaId        String        @db.Uuid
+  localId          String        @db.Uuid
   numero           String
-  pedidoId         String?       @unique
-  clienteId        String
+  pedidoId         String?       @unique @db.Uuid
+  clienteId        String        @db.Uuid
   fecha            DateTime
   fechaVencimiento DateTime
   subtotal         Decimal       @db.Decimal(15, 2)
@@ -595,10 +580,10 @@ model Factura {
 }
 
 model Cobranza {
-  id         String   @id @default(uuid())
-  empresaId  String
-  localId    String
-  facturaId  String
+  id         String   @id @default(uuid()) @db.Uuid
+  empresaId  String   @db.Uuid
+  localId    String   @db.Uuid
+  facturaId  String   @db.Uuid
   fecha      DateTime
   monto      Decimal  @db.Decimal(15, 2)
   metodoPago String
@@ -614,9 +599,9 @@ model Cobranza {
 }
 
 model RequerimientoCompra {
-  id                String              @id @default(uuid())
-  empresaId         String
-  localId           String
+  id                String              @id @default(uuid()) @db.Uuid
+  empresaId         String              @db.Uuid
+  localId           String              @db.Uuid
   numero            String
   solicitante       String
   departamento      String
@@ -640,9 +625,9 @@ model RequerimientoCompra {
 }
 
 model ItemRequerimiento {
-  id              String   @id @default(uuid())
-  requerimientoId String
-  productoId      String?
+  id              String   @id @default(uuid()) @db.Uuid
+  requerimientoId String   @db.Uuid
+  productoId      String?  @db.Uuid
   descripcion     String
   cantidad        Decimal  @db.Decimal(15, 3)
   unidad          String
@@ -655,12 +640,12 @@ model ItemRequerimiento {
 }
 
 model OrdenCompra {
-  id                   String            @id @default(uuid())
-  empresaId            String
-  localId              String
+  id                   String            @id @default(uuid()) @db.Uuid
+  empresaId            String            @db.Uuid
+  localId              String            @db.Uuid
   numero               String
-  proveedorId          String
-  requerimientoId      String?           @unique
+  proveedorId          String            @db.Uuid
+  requerimientoId      String?           @unique @db.Uuid
   fecha                DateTime
   fechaEntregaEstimada DateTime
   subtotal             Decimal           @db.Decimal(15, 2)
@@ -687,16 +672,16 @@ model OrdenCompra {
 }
 
 model ItemOrdenCompra {
-  id               String   @id @default(uuid())
-  ordenCompraId    String
-  productoId       String?
+  id               String  @id @default(uuid()) @db.Uuid
+  ordenCompraId    String  @db.Uuid
+  productoId       String? @db.Uuid
   descripcion      String
-  cantidad         Decimal  @db.Decimal(15, 3)
-  cantidadRecibida Decimal  @default(0) @db.Decimal(15, 3)
+  cantidad         Decimal @db.Decimal(15, 3)
+  cantidadRecibida Decimal @default(0) @db.Decimal(15, 3)
   unidad           String
-  precioUnitario   Decimal  @db.Decimal(15, 2)
-  descuento        Decimal  @default(0) @db.Decimal(5, 2)
-  subtotal         Decimal  @db.Decimal(15, 2)
+  precioUnitario   Decimal @db.Decimal(15, 2)
+  descuento        Decimal @default(0) @db.Decimal(5, 2)
+  subtotal         Decimal @db.Decimal(15, 2)
 
   ordenCompra OrdenCompra @relation(fields: [ordenCompraId], references: [id], onDelete: Cascade)
   producto    Producto?   @relation(fields: [productoId], references: [id])
@@ -705,11 +690,11 @@ model ItemOrdenCompra {
 }
 
 model RecepcionCompra {
-  id             String   @id @default(uuid())
-  empresaId      String
-  localId        String
+  id             String   @id @default(uuid()) @db.Uuid
+  empresaId      String   @db.Uuid
+  localId        String   @db.Uuid
   numero         String
-  ordenCompraId  String
+  ordenCompraId  String   @db.Uuid
   fechaRecepcion DateTime
   observaciones  String?  @db.Text
   recibidoPor    String
@@ -727,9 +712,9 @@ model RecepcionCompra {
 }
 
 model ItemRecepcion {
-  id                String  @id @default(uuid())
-  recepcionId       String
-  itemOrdenCompraId String
+  id                String  @id @default(uuid()) @db.Uuid
+  recepcionId       String  @db.Uuid
+  itemOrdenCompraId String  @db.Uuid
   descripcion       String
   cantidadOrdenada  Decimal @db.Decimal(15, 3)
   cantidadRecibida  Decimal @db.Decimal(15, 3)
@@ -744,10 +729,10 @@ model ItemRecepcion {
 }
 
 model PagoProveedor {
-  id          String   @id @default(uuid())
-  empresaId   String
-  localId     String
-  proveedorId String
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @db.Uuid
+  localId     String   @db.Uuid
+  proveedorId String   @db.Uuid
   fecha       DateTime
   monto       Decimal  @db.Decimal(15, 2)
   metodoPago  String
@@ -762,9 +747,9 @@ model PagoProveedor {
 }
 
 model MaterialProduccion {
-  id            String       @id @default(uuid())
-  empresaId     String
-  localId       String
+  id            String       @id @default(uuid()) @db.Uuid
+  empresaId     String       @db.Uuid
+  localId       String       @db.Uuid
   code          String
   nombre        String
   tipo          TipoProducto
@@ -773,7 +758,7 @@ model MaterialProduccion {
   stockMinimo   Decimal      @default(0) @db.Decimal(15, 3)
   stockMaximo   Decimal      @default(0) @db.Decimal(15, 3)
   costoUnitario Decimal      @default(0) @db.Decimal(15, 2)
-  proveedorId   String?
+  proveedorId   String?      @db.Uuid
   active        Boolean      @default(true)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -786,11 +771,11 @@ model MaterialProduccion {
 }
 
 model BOM {
-  id             String   @id @default(uuid())
-  empresaId      String
-  localId        String
+  id             String   @id @default(uuid()) @db.Uuid
+  empresaId      String   @db.Uuid
+  localId        String   @db.Uuid
   code           String
-  productoId     String
+  productoId     String   @db.Uuid
   productoNombre String
   cantidad       Decimal  @db.Decimal(15, 3)
   unidad         String
@@ -800,7 +785,7 @@ model BOM {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  producto          Producto        @relation(fields: [productoId], references: [id])
+  producto          Producto          @relation(fields: [productoId], references: [id])
   materiales        BOMItem[]
   ordenesProduccion OrdenProduccion[]
 
@@ -809,9 +794,9 @@ model BOM {
 }
 
 model BOMItem {
-  id             String  @id @default(uuid())
-  bomId          String
-  materialId     String
+  id             String  @id @default(uuid()) @db.Uuid
+  bomId          String  @db.Uuid
+  materialId     String  @db.Uuid
   materialNombre String
   materialCode   String
   cantidad       Decimal @db.Decimal(15, 3)
@@ -826,12 +811,12 @@ model BOMItem {
 }
 
 model OrdenProduccion {
-  id                  String                @id @default(uuid())
-  empresaId           String
-  localId             String
+  id                  String                @id @default(uuid()) @db.Uuid
+  empresaId           String                @db.Uuid
+  localId             String                @db.Uuid
   code                String
-  bomId               String
-  productoId          String
+  bomId               String                @db.Uuid
+  productoId          String                @db.Uuid
   productoNombre      String
   cantidadPlanificada Decimal               @db.Decimal(15, 3)
   cantidadProducida   Decimal               @default(0) @db.Decimal(15, 3)
@@ -858,9 +843,9 @@ model OrdenProduccion {
 }
 
 model Empleado {
-  id         String   @id @default(uuid())
-  empresaId  String
-  localId    String
+  id         String   @id @default(uuid()) @db.Uuid
+  empresaId  String   @db.Uuid
+  localId    String   @db.Uuid
   code       String
   name       String
   email      String?
@@ -885,9 +870,9 @@ model Empleado {
 }
 
 model Liquidacion {
-  id          String    @id @default(uuid())
-  empresaId   String
-  empleadoId  String
+  id          String    @id @default(uuid()) @db.Uuid
+  empresaId   String    @db.Uuid
+  empleadoId  String    @db.Uuid
   periodo     String
   sueldobruto Decimal   @db.Decimal(15, 2)
   deducciones Decimal   @default(0) @db.Decimal(15, 2)
@@ -906,9 +891,9 @@ model Liquidacion {
 }
 
 model Asistencia {
-  id          String    @id @default(uuid())
-  empresaId   String
-  empleadoId  String
+  id          String    @id @default(uuid()) @db.Uuid
+  empresaId   String    @db.Uuid
+  empleadoId  String    @db.Uuid
   fecha       DateTime  @db.Date
   entrada     DateTime?
   salida      DateTime?
@@ -925,9 +910,9 @@ model Asistencia {
 }
 
 model RegistroHoras {
-  id            String   @id @default(uuid())
-  empresaId     String
-  empleadoId    String
+  id            String   @id @default(uuid()) @db.Uuid
+  empresaId     String   @db.Uuid
+  empleadoId    String   @db.Uuid
   fecha         DateTime @db.Date
   horasNormales Decimal  @default(0) @db.Decimal(5, 2)
   horasExtra    Decimal  @default(0) @db.Decimal(5, 2)
@@ -941,9 +926,9 @@ model RegistroHoras {
 }
 
 model Vacacion {
-  id          String   @id @default(uuid())
-  empresaId   String
-  empleadoId  String
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @db.Uuid
+  empleadoId  String   @db.Uuid
   fechaDesde  DateTime @db.Date
   fechaHasta  DateTime @db.Date
   diasHabiles Int
@@ -960,14 +945,14 @@ model Vacacion {
 }
 
 model CuentaContable {
-  id            String           @id @default(uuid())
-  empresaId     String
+  id            String           @id @default(uuid()) @db.Uuid
+  empresaId     String           @db.Uuid
   code          String
   nombre        String
   tipo          TipoCuenta
   naturaleza    NaturalezaCuenta
   nivel         Int
-  cuentaPadreId String?
+  cuentaPadreId String?          @db.Uuid
   imputable     Boolean          @default(true)
   activa        Boolean          @default(true)
   saldo         Decimal          @default(0) @db.Decimal(15, 2)
@@ -985,9 +970,9 @@ model CuentaContable {
 }
 
 model AsientoContable {
-  id           String        @id @default(uuid())
-  empresaId    String
-  localId      String
+  id           String        @id @default(uuid()) @db.Uuid
+  empresaId    String        @db.Uuid
+  localId      String        @db.Uuid
   numero       Int
   fecha        DateTime      @db.Date
   descripcion  String
@@ -1011,9 +996,9 @@ model AsientoContable {
 }
 
 model DetalleAsiento {
-  id          String  @id @default(uuid())
-  asientoId   String
-  cuentaId    String
+  id          String  @id @default(uuid()) @db.Uuid
+  asientoId   String  @db.Uuid
+  cuentaId    String  @db.Uuid
   debe        Decimal @default(0) @db.Decimal(15, 2)
   haber       Decimal @default(0) @db.Decimal(15, 2)
   descripcion String?
@@ -1025,11 +1010,11 @@ model DetalleAsiento {
 }
 
 model CuentaPorCobrar {
-  id               String             @id @default(uuid())
-  empresaId        String
-  localId          String
-  clienteId        String
-  facturaId        String             @unique
+  id               String             @id @default(uuid()) @db.Uuid
+  empresaId        String             @db.Uuid
+  localId          String             @db.Uuid
+  clienteId        String             @db.Uuid
+  facturaId        String             @unique @db.Uuid
   fechaEmision     DateTime
   fechaVencimiento DateTime
   montoTotal       Decimal            @db.Decimal(15, 2)
@@ -1051,11 +1036,11 @@ model CuentaPorCobrar {
 }
 
 model CuentaPorPagar {
-  id               String            @id @default(uuid())
-  empresaId        String
-  localId          String
-  proveedorId      String
-  ordenCompraId    String            @unique
+  id               String            @id @default(uuid()) @db.Uuid
+  empresaId        String            @db.Uuid
+  localId          String            @db.Uuid
+  proveedorId      String            @db.Uuid
+  ordenCompraId    String            @unique @db.Uuid
   fechaEmision     DateTime
   fechaVencimiento DateTime
   montoTotal       Decimal           @db.Decimal(15, 2)
@@ -1077,24 +1062,24 @@ model CuentaPorPagar {
 }
 
 model Banco {
-  id        String   @id @default(uuid())
-  empresaId String
+  id        String   @id @default(uuid()) @db.Uuid
+  empresaId String   @db.Uuid
   nombre    String
   codigo    String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  empresa Empresa         @relation(fields: [empresaId], references: [id])
+  empresa Empresa          @relation(fields: [empresaId], references: [id])
   cuentas CuentaBancaria[]
 
   @@map("bancos")
 }
 
 model CuentaBancaria {
-  id           String   @id @default(uuid())
-  empresaId    String
-  bancoId      String
-  localId      String
+  id           String   @id @default(uuid()) @db.Uuid
+  empresaId    String   @db.Uuid
+  bancoId      String   @db.Uuid
+  localId      String   @db.Uuid
   numeroCuenta String
   tipoCuenta   String
   moneda       String   @default("ARS")
@@ -1110,9 +1095,9 @@ model CuentaBancaria {
 }
 
 model MovimientoBancario {
-  id               String   @id @default(uuid())
-  empresaId        String
-  cuentaBancariaId String
+  id               String   @id @default(uuid()) @db.Uuid
+  empresaId        String   @db.Uuid
+  cuentaBancariaId String   @db.Uuid
   fecha            DateTime @db.Date
   tipo             String
   concepto         String
@@ -1129,17 +1114,17 @@ model MovimientoBancario {
 }
 
 model CajaLocal {
-  id           String    @id @default(uuid())
-  empresaId    String
-  localId      String
-  fecha        DateTime  @db.Date
-  saldoInicial Decimal   @db.Decimal(15, 2)
-  saldoFinal   Decimal?  @db.Decimal(15, 2)
-  abierta      Boolean   @default(true)
+  id           String   @id @default(uuid()) @db.Uuid
+  empresaId    String   @db.Uuid
+  localId      String   @db.Uuid
+  fecha        DateTime @db.Date
+  saldoInicial Decimal  @db.Decimal(15, 2)
+  saldoFinal   Decimal? @db.Decimal(15, 2)
+  abierta      Boolean  @default(true)
   abrioPor     String
   cerroPor     String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   local       Local            @relation(fields: [localId], references: [id])
   movimientos MovimientoCaja[]
@@ -1149,8 +1134,8 @@ model CajaLocal {
 }
 
 model MovimientoCaja {
-  id         String   @id @default(uuid())
-  cajaId     String
+  id         String   @id @default(uuid()) @db.Uuid
+  cajaId     String   @db.Uuid
   tipo       String
   concepto   String
   monto      Decimal  @db.Decimal(15, 2)
@@ -1165,9 +1150,9 @@ model MovimientoCaja {
 }
 
 model Cheque {
-  id           String       @id @default(uuid())
-  empresaId    String
-  localId      String
+  id           String       @id @default(uuid()) @db.Uuid
+  empresaId    String       @db.Uuid
+  localId      String       @db.Uuid
   numero       String
   bancoNombre  String
   tipo         TipoCheque
@@ -1189,9 +1174,9 @@ model Cheque {
 }
 
 model Retencion {
-  id              String        @id @default(uuid())
-  empresaId       String
-  localId         String
+  id              String        @id @default(uuid()) @db.Uuid
+  empresaId       String        @db.Uuid
+  localId         String        @db.Uuid
   tipo            TipoRetencion
   numero          String
   fecha           DateTime      @db.Date
@@ -1211,8 +1196,8 @@ model Retencion {
 }
 
 model ConvenioMultilateral {
-  id              String   @id @default(uuid())
-  empresaId       String
+  id              String   @id @default(uuid()) @db.Uuid
+  empresaId       String   @db.Uuid
   periodo         String
   ingresosTotales Decimal  @db.Decimal(15, 2)
   totalImpuesto   Decimal  @db.Decimal(15, 2)
@@ -1227,9 +1212,9 @@ model ConvenioMultilateral {
 }
 
 model AuditoriaLog {
-  id         String        @id @default(uuid())
-  empresaId  String
-  usuarioId  String?
+  id         String        @id @default(uuid()) @db.Uuid
+  empresaId  String        @db.Uuid
+  usuarioId  String?       @db.Uuid
   userName   String
   userRole   String
   tipo       TipoAuditoria

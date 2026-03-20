@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   CreateClienteDto,
@@ -51,20 +47,24 @@ export class ClientesService {
     return { data: cliente };
   }
 
-  async create(dto: CreateClienteDto, currentUser: JwtPayload) {
-    const exists = await this.prisma.cliente.findFirst({
-      where: { empresaId: currentUser.empresaId, code: dto.code },
+  private async generateCode(empresaId: string): Promise<string> {
+    const last = await this.prisma.cliente.findFirst({
+      where: { empresaId },
+      orderBy: { code: 'desc' },
+      select: { code: true },
     });
-    if (exists)
-      throw new ConflictException(
-        `Ya existe un cliente con código "${dto.code}"`,
-      );
+    const lastNum = last ? parseInt(last.code.replace(/\D/g, ''), 10) || 0 : 0;
+    return `CLI-${String(lastNum + 1).padStart(4, '0')}`;
+  }
+
+  async create(dto: CreateClienteDto, currentUser: JwtPayload) {
+    const code = await this.generateCode(currentUser.empresaId);
 
     const cliente = await this.prisma.cliente.create({
       data: {
         empresaId: currentUser.empresaId,
         localId: dto.localId,
-        code: dto.code,
+        code,
         name: dto.name,
         taxId: dto.taxId,
         address: dto.address,
@@ -85,7 +85,6 @@ export class ClientesService {
     const cliente = await this.prisma.cliente.update({
       where: { id },
       data: {
-        ...(dto.code && { code: dto.code }),
         ...(dto.name && { name: dto.name }),
         ...(dto.taxId !== undefined && { taxId: dto.taxId }),
         ...(dto.address !== undefined && { address: dto.address }),
