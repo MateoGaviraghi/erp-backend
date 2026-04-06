@@ -5,6 +5,7 @@ import {
   IsOptional,
   MaxLength,
   IsBoolean,
+  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
@@ -56,6 +57,11 @@ export class CreateLocalDto {
   @IsString()
   @MaxLength(100)
   manager?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  empresaId?: string;
 }
 
 export class UpdateLocalDto extends PartialType(CreateLocalDto) {

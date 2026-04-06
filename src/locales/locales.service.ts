@@ -7,14 +7,20 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateLocalDto, UpdateLocalDto } from './dto/create-local.dto.js';
 import { PaginationDto, buildMeta } from '../common/dto/pagination.dto.js';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class LocalesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(currentUser: JwtPayload, pagination: PaginationDto) {
+    const isSuper = currentUser.rol === UserRole.Super;
+    const targetEmpresaId = isSuper
+      ? (pagination.empresaId ?? undefined)
+      : currentUser.empresaId;
+
     const where = {
-      empresaId: currentUser.empresaId,
+      ...(targetEmpresaId ? { empresaId: targetEmpresaId } : {}),
       ...(pagination.search && {
         OR: [
           {
@@ -46,8 +52,9 @@ export class LocalesService {
   }
 
   async findOne(id: string, currentUser: JwtPayload) {
+    const isSuper = currentUser.rol === UserRole.Super;
     const local = await this.prisma.local.findFirst({
-      where: { id, empresaId: currentUser.empresaId },
+      where: isSuper ? { id } : { id, empresaId: currentUser.empresaId },
       include: {
         _count: {
           select: {
@@ -65,16 +72,22 @@ export class LocalesService {
   }
 
   async create(dto: CreateLocalDto, currentUser: JwtPayload) {
+    const empresaId =
+      currentUser.rol === UserRole.Super && dto.empresaId
+        ? dto.empresaId
+        : currentUser.empresaId;
+
     const exists = await this.prisma.local.findFirst({
-      where: { empresaId: currentUser.empresaId, code: dto.code },
+      where: { empresaId, code: dto.code },
     });
     if (exists)
       throw new ConflictException(
         `Ya existe un local con el código ${dto.code}`,
       );
 
+    const { empresaId: _ignored, ...rest } = dto;
     const local = await this.prisma.local.create({
-      data: { ...dto, empresaId: currentUser.empresaId },
+      data: { ...rest, empresaId },
     });
     return { data: local };
   }

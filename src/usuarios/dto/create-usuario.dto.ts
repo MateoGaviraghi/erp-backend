@@ -35,4 +35,9 @@ export class CreateUsuarioDto {
   @IsOptional()
   @IsUUID()
   localId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  empresaId?: string;
 }
