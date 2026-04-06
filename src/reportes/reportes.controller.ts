@@ -20,8 +20,11 @@ export class ReportesController {
 
   @Get('dashboard')
   @ApiOperation({ summary: 'KPIs ejecutivos del mes en curso' })
-  dashboard(@CurrentUser() user: JwtPayload) {
-    return this.service.dashboard(user);
+  dashboard(
+    @Query('localId') localId: string | undefined,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.dashboard(user, localId);
   }
 
   @Get('ventas')
@@ -168,9 +171,9 @@ export class ReportesController {
   }
 
   @Get('resultados')
-  @Roles(UserRole.Administrador, UserRole.Contable)
+  @Roles(UserRole.Administrador, UserRole.Contador)
   @ApiOperation({
-    summary: 'Estado de resultados del período [Admin/Contable]',
+    summary: 'Estado de resultados del período [Admin/Contador]',
   })
   resultados(@Query() dto: ReporteFiltrosDto, @CurrentUser() user: JwtPayload) {
     return this.service.reporteResultados(dto, user);

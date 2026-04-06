@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto.js';
-import type { StringValue } from 'ms';
 import { JwtPayload } from './interfaces/jwt-payload.interface.js';
 
 @Injectable()
@@ -100,7 +99,6 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(payload as object, {
       secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-      expiresIn: this.configService.getOrThrow<StringValue>('JWT_EXPIRES_IN'),
     });
 
     return { accessToken };

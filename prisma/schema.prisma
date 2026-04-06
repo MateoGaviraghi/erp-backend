@@ -8,8 +8,13 @@ datasource db {
 
 enum UserRole {
   Administrador
+  Gerente
   Vendedor
-  Contable
+  Inventario
+  Contador
+  RRHH
+  Produccion
+  SoloLectura
 }
 
 enum EstadoPresupuesto {

@@ -24,8 +24,12 @@ export class RecepcionesService {
         where,
         include: {
           ordenCompra: {
-            include: { proveedor: { select: { id: true, name: true } } },
+            include: {
+              proveedor: { select: { id: true, name: true } },
+              items: { select: { id: true, descripcion: true, cantidad: true, cantidadRecibida: true, unidad: true } },
+            },
           },
+          items: true,
         },
         skip: pagination.skip,
         take: pagination.limit,

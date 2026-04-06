@@ -336,10 +336,12 @@ export class ReportesService {
   // Dashboard: KPIs resumen ejecutivo
   // ─────────────────────────────────────────
 
-  async dashboard(currentUser: JwtPayload) {
+  async dashboard(currentUser: JwtPayload, localId?: string) {
     const hoy = new Date();
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     const empresaId = currentUser.empresaId;
+
+    const localFilter = localId ? { localId } : {};
 
     const [
       ventasMes,
@@ -351,6 +353,7 @@ export class ReportesService {
       this.prisma.factura.aggregate({
         where: {
           empresaId,
+          ...localFilter,
           fecha: { gte: inicioMes },
           estado: { not: 'ANULADA' },
         },
@@ -360,6 +363,7 @@ export class ReportesService {
       this.prisma.ordenCompra.aggregate({
         where: {
           empresaId,
+          ...localFilter,
           fecha: { gte: inicioMes },
           estado: { not: 'CANCELADA' },
         },
@@ -367,28 +371,39 @@ export class ReportesService {
         _count: true,
       }),
       this.prisma.ordenProduccion.count({
-        where: { empresaId, estado: { in: ['PLANIFICADA', 'EN_PROCESO'] } },
+        where: { empresaId, ...localFilter, estado: { in: ['PLANIFICADA', 'EN_PROCESO'] } },
       }),
       this.prisma.empleado.count({
-        where: { empresaId, active: true },
+        where: { empresaId, ...localFilter, active: true },
       }),
       this.prisma.cuentaPorCobrar.count({
         where: {
           empresaId,
+          ...localFilter,
           estado: 'PENDIENTE',
           fechaVencimiento: { lt: hoy },
         },
       }),
     ]);
 
-    const alertasStock = await this.prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*) as count
-      FROM "stock" s
-      JOIN "productos" p ON p.id = s."productoId"
-      WHERE s."empresaId" = ${empresaId}
-        AND p."minStock" IS NOT NULL
-        AND s.cantidad <= p."minStock"
-    `;
+    const alertasStock = localId
+      ? await this.prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(*) as count
+          FROM "stock" s
+          JOIN "productos" p ON p.id = s."productoId"
+          WHERE s."empresaId" = ${empresaId}
+            AND s."localId" = ${localId}
+            AND p."minStock" IS NOT NULL
+            AND s.cantidad <= p."minStock"
+        `
+      : await this.prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(*) as count
+          FROM "stock" s
+          JOIN "productos" p ON p.id = s."productoId"
+          WHERE s."empresaId" = ${empresaId}
+            AND p."minStock" IS NOT NULL
+            AND s.cantidad <= p."minStock"
+        `;
 
     return {
       data: {
