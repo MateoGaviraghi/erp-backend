@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -36,12 +37,30 @@ export class AsientosController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Crear asiento manual (valida partida doble)' })
+  @ApiOperation({ summary: 'Crear asiento manual (guarda como BORRADOR sin validar balance)' })
   create(
     @Body() dto: CreateAsientoDto,
     @Query('localId', ParseUUIDPipe) localId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.create(dto, localId, user);
+  }
+
+  @Patch(':id/confirmar')
+  @ApiOperation({ summary: 'Confirmar asiento (valida que DEBE = HABER antes de confirmar)' })
+  confirmar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.confirmar(id, user);
+  }
+
+  @Patch(':id/anular')
+  @ApiOperation({ summary: 'Anular asiento (BORRADOR o CONFIRMADO → ANULADO)' })
+  anular(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.anular(id, user);
   }
 }

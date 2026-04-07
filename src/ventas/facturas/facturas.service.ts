@@ -178,6 +178,20 @@ export class FacturasService {
         data: { estado: EstadoPedido.ENTREGADO },
       });
 
+      // Crear cuenta por cobrar
+      await tx.cuentaPorCobrar.create({
+        data: {
+          empresaId: currentUser.empresaId,
+          localId: pedido.localId,
+          clienteId: pedido.clienteId,
+          facturaId: factura.id,
+          fechaEmision: new Date(),
+          fechaVencimiento,
+          montoTotal: pedido.total,
+          montoSaldo: pedido.total,
+        },
+      });
+
       return { data: factura };
     });
   }
