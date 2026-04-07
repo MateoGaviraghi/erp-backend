@@ -735,20 +735,24 @@ model ItemRecepcion {
 }
 
 model PagoProveedor {
-  id          String   @id @default(uuid()) @db.Uuid
-  empresaId   String   @db.Uuid
-  localId     String   @db.Uuid
-  proveedorId String   @db.Uuid
-  fecha       DateTime
-  monto       Decimal  @db.Decimal(15, 2)
-  metodoPago  String
-  referencia  String?
-  notas       String?
-  creadoPor   String
-  createdAt   DateTime @default(now())
+  id             String          @id @default(uuid()) @db.Uuid
+  empresaId      String          @db.Uuid
+  localId        String          @db.Uuid
+  proveedorId    String          @db.Uuid
+  cuentaPagarId  String?         @db.Uuid
+  fecha          DateTime
+  monto          Decimal         @db.Decimal(15, 2)
+  metodoPago     String
+  referencia     String?
+  notas          String?
+  creadoPor      String
+  createdAt      DateTime        @default(now())
+
+  cuentaPagar CuentaPorPagar? @relation(fields: [cuentaPagarId], references: [id])
 
   @@index([proveedorId])
   @@index([empresaId, localId])
+  @@index([cuentaPagarId])
   @@map("pagos_proveedor")
 }
 
@@ -1057,9 +1061,10 @@ model CuentaPorPagar {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  local       Local       @relation(fields: [localId], references: [id])
-  proveedor   Proveedor   @relation(fields: [proveedorId], references: [id])
-  ordenCompra OrdenCompra @relation(fields: [ordenCompraId], references: [id])
+  local        Local            @relation(fields: [localId], references: [id])
+  proveedor    Proveedor        @relation(fields: [proveedorId], references: [id])
+  ordenCompra  OrdenCompra      @relation(fields: [ordenCompraId], references: [id])
+  pagos        PagoProveedor[]
 
   @@index([empresaId, localId])
   @@index([proveedorId])

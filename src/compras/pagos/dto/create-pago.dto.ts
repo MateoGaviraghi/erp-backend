@@ -36,8 +36,8 @@ export class CreatePagoProveedorDto {
   @IsString()
   referencia?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'ID de la Cuenta por Pagar a imputar' })
   @IsOptional()
-  @IsString()
-  notas?: string;
+  @IsUUID()
+  cuentaPagarId?: string;
 }
