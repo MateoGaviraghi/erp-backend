@@ -55,7 +55,8 @@ async function main() {
     console.log('✓ Local creado');
 
     // 3. Usuario admin
-    await pool.query(`
+    await pool.query(
+      `
       INSERT INTO usuarios (id, "empresaId", "localId", nombre, email, password, rol, active, "createdAt", "updatedAt")
       VALUES (
         '00000000-0000-0000-0000-000000000003',
@@ -70,19 +71,20 @@ async function main() {
         NOW()
       )
       ON CONFLICT (id) DO NOTHING
-    `, [hash]);
+    `,
+      [hash],
+    );
     console.log('✓ Usuario admin creado');
 
     console.log('\nLogin con:');
     console.log('  email:    nexasoft2026@gmail.com');
     console.log('  password: NexaSoft2003');
-
   } finally {
     await pool.end();
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Error:', err.message);
   process.exit(1);
 });
