@@ -18,21 +18,21 @@ export class CreateCuentaDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'Caja Principal' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  nombre: string;
+  nombre!: string;
 
   @ApiProperty({ enum: TipoCuenta, example: TipoCuenta.ACTIVO })
   @IsEnum(TipoCuenta)
-  tipo: TipoCuenta;
+  tipo!: TipoCuenta;
 
   @ApiProperty({ enum: NaturalezaCuenta })
   @IsEnum(NaturalezaCuenta)
-  naturaleza: NaturalezaCuenta;
+  naturaleza!: NaturalezaCuenta;
 
   @ApiPropertyOptional({ default: 1, description: 'Nivel jerárquico (1=raíz)' })
   @IsOptional()

@@ -4,7 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateFacturaDto {
   @ApiProperty({ description: 'ID del pedido aprobado' })
   @IsUUID()
-  pedidoId: string;
+  pedidoId!: string;
 
   @ApiPropertyOptional({ example: '2026-04-30' })
   @IsOptional()

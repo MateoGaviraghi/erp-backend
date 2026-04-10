@@ -17,17 +17,17 @@ export class CreateProveedorDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'Distribuidora del Sur S.A.' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @ApiProperty({ description: 'ID del local al que pertenece' })
   @IsUUID()
-  localId: string;
+  localId!: string;
 
   @ApiPropertyOptional({ example: '30-22222222-2' })
   @IsOptional()

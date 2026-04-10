@@ -23,19 +23,19 @@ export class ItemRequerimientoDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  descripcion: string;
+  descripcion!: string;
 
   @ApiProperty({ example: 100 })
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidad: number;
+  cantidad!: number;
 
   @ApiProperty({ example: 'KG' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  unidad: string;
+  unidad!: string;
 
   @ApiPropertyOptional({ example: 250.0 })
   @IsOptional()
@@ -55,22 +55,22 @@ export class CreateRequerimientoDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  solicitante: string;
+  solicitante!: string;
 
   @ApiProperty({ example: 'Producción' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  departamento: string;
+  departamento!: string;
 
   @ApiProperty({ example: 'Reposición de insumos para la producción de marzo' })
   @IsString()
   @IsNotEmpty()
-  justificacion: string;
+  justificacion!: string;
 
   @ApiProperty({ example: '2026-04-01' })
   @IsDateString()
-  fechaNecesidad: string;
+  fechaNecesidad!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -81,5 +81,5 @@ export class CreateRequerimientoDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemRequerimientoDto)
-  items: ItemRequerimientoDto[];
+  items!: ItemRequerimientoDto[];
 }

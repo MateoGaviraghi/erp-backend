@@ -14,19 +14,19 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class ItemPresupuestoDto {
   @ApiProperty()
   @IsUUID()
-  productoId: string;
+  productoId!: string;
 
   @ApiProperty({ example: 10 })
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidad: number;
+  cantidad!: number;
 
   @ApiProperty({ example: 1000.0, description: 'Precio unitario de venta' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  precioUnitario: number;
+  precioUnitario!: number;
 
   @ApiPropertyOptional({ example: 10, description: 'Descuento en porcentaje' })
   @IsOptional()
@@ -39,7 +39,7 @@ export class ItemPresupuestoDto {
 export class CreatePresupuestoDto {
   @ApiProperty()
   @IsUUID()
-  clienteId: string;
+  clienteId!: string;
 
   @ApiPropertyOptional({
     example: '2026-04-30',
@@ -58,5 +58,5 @@ export class CreatePresupuestoDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemPresupuestoDto)
-  items: ItemPresupuestoDto[];
+  items!: ItemPresupuestoDto[];
 }
