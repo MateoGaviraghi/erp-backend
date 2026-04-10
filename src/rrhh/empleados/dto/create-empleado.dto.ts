@@ -18,13 +18,13 @@ export class CreateEmpleadoDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'González María Fernanda' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: 'maria@empresa.com' })
   @IsOptional()
@@ -41,23 +41,23 @@ export class CreateEmpleadoDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  position: string;
+  position!: string;
 
   @ApiProperty({ example: 'Administración' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  department: string;
+  department!: string;
 
   @ApiProperty({ example: 280000 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  salary: number;
+  salary!: number;
 
   @ApiProperty({ example: '2024-06-01' })
   @IsDateString()
-  hireDate: string;
+  hireDate!: string;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()

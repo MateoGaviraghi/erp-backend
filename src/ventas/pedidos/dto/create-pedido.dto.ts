@@ -6,5 +6,5 @@ export class CreatePedidoDto {
     description: 'ID del presupuesto aprobado a convertir en pedido',
   })
   @IsUUID()
-  presupuestoId: string;
+  presupuestoId!: string;
 }
