@@ -4,15 +4,15 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateVacacionDto {
   @ApiProperty()
   @IsUUID()
-  empleadoId: string;
+  empleadoId!: string;
 
   @ApiProperty({ example: '2026-07-07' })
   @IsDateString()
-  fechaDesde: string;
+  fechaDesde!: string;
 
   @ApiProperty({ example: '2026-07-18' })
   @IsDateString()
-  fechaHasta: string;
+  fechaHasta!: string;
 
   @ApiPropertyOptional()
   @IsOptional()

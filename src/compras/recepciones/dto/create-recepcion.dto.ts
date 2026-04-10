@@ -14,13 +14,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class ItemRecepcionDto {
   @ApiProperty({ description: 'ID del item de la orden de compra' })
   @IsUUID()
-  itemOrdenCompraId: string;
+  itemOrdenCompraId!: string;
 
   @ApiProperty({ example: 50, description: 'Cantidad efectivamente recibida' })
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidadRecibida: number;
+  cantidadRecibida!: number;
 
   @ApiPropertyOptional({
     example: 0,
@@ -46,7 +46,7 @@ export class ItemRecepcionDto {
 export class CreateRecepcionDto {
   @ApiProperty({ description: 'ID de la orden de compra' })
   @IsUUID()
-  ordenCompraId: string;
+  ordenCompraId!: string;
 
   @ApiPropertyOptional({
     example: '0001-00012345',
@@ -66,5 +66,5 @@ export class CreateRecepcionDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemRecepcionDto)
-  items: ItemRecepcionDto[];
+  items!: ItemRecepcionDto[];
 }

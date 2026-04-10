@@ -12,17 +12,17 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateRegistroHorasDto {
   @ApiProperty()
   @IsUUID()
-  empleadoId: string;
+  empleadoId!: string;
 
   @ApiProperty({ example: '2026-02-18' })
   @IsDateString()
-  fecha: string;
+  fecha!: string;
 
   @ApiProperty({ example: 8 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  horasNormales: number;
+  horasNormales!: number;
 
   @ApiPropertyOptional({ example: 2 })
   @IsOptional()

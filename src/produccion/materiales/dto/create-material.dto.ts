@@ -18,23 +18,23 @@ export class CreateMaterialProduccionDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'Chapa de acero 1mm' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  nombre: string;
+  nombre!: string;
 
   @ApiProperty({ enum: TipoProducto, example: 'MATERIA_PRIMA' })
   @IsEnum(TipoProducto)
-  tipo: TipoProducto;
+  tipo!: TipoProducto;
 
   @ApiProperty({ example: 'kg' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  unidad: string;
+  unidad!: string;
 
   @ApiPropertyOptional({ example: 1000 })
   @IsOptional()

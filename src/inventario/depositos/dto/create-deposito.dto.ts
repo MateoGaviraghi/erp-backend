@@ -12,19 +12,19 @@ import { PartialType } from '@nestjs/swagger';
 export class CreateDepositoDto {
   @ApiProperty({ description: 'ID del local al que pertenece el depósito' })
   @IsUUID()
-  localId: string;
+  localId!: string;
 
   @ApiProperty({ example: 'DEP-A' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'Depósito Principal' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: 'Sector A, Planta Baja' })
   @IsOptional()

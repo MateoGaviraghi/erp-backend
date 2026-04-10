@@ -13,7 +13,7 @@ export class CreateCategoriaDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: 'Materiales base de producción' })
   @IsOptional()

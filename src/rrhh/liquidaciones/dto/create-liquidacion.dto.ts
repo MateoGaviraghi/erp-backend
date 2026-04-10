@@ -13,7 +13,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateLiquidacionDto {
   @ApiProperty()
   @IsUUID()
-  empleadoId: string;
+  empleadoId!: string;
 
   @ApiProperty({
     example: '2026-02',
@@ -21,13 +21,13 @@ export class CreateLiquidacionDto {
   })
   @IsString()
   @IsNotEmpty()
-  periodo: string;
+  periodo!: string;
 
   @ApiProperty({ example: 280000 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  sueldobruto: number;
+  sueldobruto!: number;
 
   @ApiPropertyOptional({ example: 39480 })
   @IsOptional()

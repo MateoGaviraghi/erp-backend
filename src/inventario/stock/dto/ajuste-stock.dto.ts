@@ -18,11 +18,11 @@ export enum TipoAjuste {
 export class AjusteStockDto {
   @ApiProperty({ description: 'ID del producto a ajustar' })
   @IsUUID()
-  productoId: string;
+  productoId!: string;
 
   @ApiProperty({ enum: TipoAjuste })
   @IsEnum(TipoAjuste)
-  tipo: TipoAjuste;
+  tipo!: TipoAjuste;
 
   @ApiProperty({
     example: 10,
@@ -31,7 +31,7 @@ export class AjusteStockDto {
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidad: number;
+  cantidad!: number;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -41,5 +41,5 @@ export class AjusteStockDto {
   @ApiProperty({ example: 'Corrección de conteo físico' })
   @IsString()
   @IsNotEmpty()
-  observaciones: string;
+  observaciones!: string;
 }

@@ -15,19 +15,19 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class DetalleAsientoDto {
   @ApiProperty({ description: 'ID de la cuenta contable' })
   @IsUUID()
-  cuentaId: string;
+  cuentaId!: string;
 
   @ApiProperty({ example: 5000, description: 'Monto al DEBE (0 si es HABER)' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  debe: number;
+  debe!: number;
 
   @ApiProperty({ example: 0, description: 'Monto al HABER (0 si es DEBE)' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  haber: number;
+  haber!: number;
 
   @ApiPropertyOptional({ example: 'Cobro factura 0001-001234' })
   @IsOptional()
@@ -44,7 +44,7 @@ export class CreateAsientoDto {
   @ApiProperty({ example: 'Cobro en efectivo Factura B 0001-001234' })
   @IsString()
   @IsNotEmpty()
-  descripcion: string;
+  descripcion!: string;
 
   @ApiPropertyOptional({ description: 'ID de referencia (factura, OC, etc.)' })
   @IsOptional()
@@ -55,5 +55,5 @@ export class CreateAsientoDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => DetalleAsientoDto)
-  detalles: DetalleAsientoDto[];
+  detalles!: DetalleAsientoDto[];
 }

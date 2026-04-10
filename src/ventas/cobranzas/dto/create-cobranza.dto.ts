@@ -13,13 +13,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateCobranzaDto {
   @ApiProperty()
   @IsUUID()
-  facturaId: string;
+  facturaId!: string;
 
   @ApiProperty({ example: 5000.0, description: 'Monto cobrado' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Type(() => Number)
-  monto: number;
+  monto!: number;
 
   @ApiProperty({
     example: 'TRANSFERENCIA',
@@ -28,7 +28,7 @@ export class CreateCobranzaDto {
   })
   @IsString()
   @MaxLength(50)
-  metodoPago: string;
+  metodoPago!: string;
 
   @ApiPropertyOptional({ example: '2026-03-01' })
   @IsOptional()

@@ -10,11 +10,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateAsistenciaDto {
   @ApiProperty({ description: 'ID del empleado' })
   @IsUUID()
-  empleadoId: string;
+  empleadoId!: string;
 
   @ApiProperty({ example: '2026-02-18' })
   @IsDateString()
-  fecha: string;
+  fecha!: string;
 
   @ApiPropertyOptional({ example: false, default: false })
   @IsOptional()

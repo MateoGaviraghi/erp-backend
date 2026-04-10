@@ -15,13 +15,13 @@ import { TipoRetencion } from '@prisma/client';
 export class CreateRetencionDto {
   @ApiProperty({ enum: TipoRetencion })
   @IsEnum(TipoRetencion)
-  tipo: TipoRetencion;
+  tipo!: TipoRetencion;
 
   @ApiProperty({ example: '0001-00001234' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
-  numero: string;
+  numero!: string;
 
   @ApiPropertyOptional({ description: 'Fecha de la retención (default: hoy)' })
   @IsOptional()
@@ -42,19 +42,19 @@ export class CreateRetencionDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Type(() => Number)
-  importe: number;
+  importe!: number;
 
   @ApiProperty({ example: 3.5, description: 'Alícuota aplicada (%)' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  alicuota: number;
+  alicuota!: number;
 
   @ApiProperty({ example: 28571.43, description: 'Base imponible' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  baseImponible: number;
+  baseImponible!: number;
 
   @ApiPropertyOptional()
   @IsOptional()
