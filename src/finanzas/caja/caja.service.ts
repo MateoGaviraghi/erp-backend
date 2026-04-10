@@ -8,7 +8,6 @@ import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface.js'
 export class CajaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Busca o crea la caja abierta del día para el local dado */
   private async getOrCreateCaja(localId: string, currentUser: JwtPayload) {
     const hoy = new Date();
     hoy.setUTCHours(0, 0, 0, 0);
@@ -41,7 +40,17 @@ export class CajaService {
   async getSaldo(localId: string, currentUser: JwtPayload) {
     const caja = await this.getOrCreateCaja(localId, currentUser);
     const saldo = await this.calcularSaldo(caja.id, Number(caja.saldoInicial));
-    return { data: { ...caja, saldo } };
+    return {
+      data: {
+        id: caja.id,
+        localId: caja.localId,
+        empresaId: caja.empresaId,
+        fecha: caja.fecha,
+        saldo,
+        saldoInicial: Number(caja.saldoInicial),
+        abierta: caja.abierta,
+      },
+    };
   }
 
   async getMovimientos(
@@ -52,7 +61,7 @@ export class CajaService {
     const caja = await this.getOrCreateCaja(localId, currentUser);
     const where = { cajaId: caja.id };
 
-    const [data, total] = await Promise.all([
+    const [movimientos, total] = await Promise.all([
       this.prisma.movimientoCaja.findMany({
         where,
         skip: pagination.skip,
@@ -61,6 +70,19 @@ export class CajaService {
       }),
       this.prisma.movimientoCaja.count({ where }),
     ]);
+
+    const data = movimientos.map((m) => ({
+      id: m.id,
+      tipo: m.tipo,
+      concepto: m.concepto,
+      monto: Number(m.monto),
+      referencia: m.referencia,
+      saldoAnterior: Number(m.saldoAnterior),
+      saldoNuevo: Number(m.saldoNuevo),
+      creadoPor: m.creadoPor,
+      fecha: m.createdAt,
+      createdAt: m.createdAt,
+    }));
 
     return { data, meta: buildMeta(total, pagination) };
   }
@@ -97,14 +119,19 @@ export class CajaService {
       });
       const ingreso = result.find((r) => r.tipo === 'INGRESO')?._sum.monto ?? 0;
       const egreso = result.find((r) => r.tipo === 'EGRESO')?._sum.monto ?? 0;
-      const saldoActual =
+      const saldoAnterior =
         Number(caja.saldoInicial) + Number(ingreso) - Number(egreso);
 
-      if (dto.tipo === 'EGRESO' && saldoActual < dto.monto) {
+      if (dto.tipo === 'EGRESO' && saldoAnterior < dto.monto) {
         throw new BadRequestException(
-          `Saldo insuficiente en caja. Disponible: ${saldoActual.toFixed(2)}`,
+          `Saldo insuficiente en caja. Disponible: ${saldoAnterior.toFixed(2)}`,
         );
       }
+
+      const saldoNuevo =
+        dto.tipo === 'INGRESO'
+          ? saldoAnterior + dto.monto
+          : saldoAnterior - dto.monto;
 
       const movimiento = await tx.movimientoCaja.create({
         data: {
@@ -113,20 +140,24 @@ export class CajaService {
           monto: dto.monto,
           concepto: dto.concepto,
           referencia: dto.referencia,
+          saldoAnterior,
+          saldoNuevo,
           creadoPor: currentUser.nombre,
         },
       });
 
-      const saldoNuevo =
-        dto.tipo === 'INGRESO'
-          ? saldoActual + dto.monto
-          : saldoActual - dto.monto;
-
       return {
         data: {
-          movimiento,
-          saldoAnterior: saldoActual,
+          id: movimiento.id,
+          tipo: movimiento.tipo,
+          concepto: movimiento.concepto,
+          monto: Number(movimiento.monto),
+          referencia: movimiento.referencia,
+          saldoAnterior,
           saldoNuevo,
+          creadoPor: movimiento.creadoPor,
+          fecha: movimiento.createdAt,
+          createdAt: movimiento.createdAt,
         },
       };
     });
