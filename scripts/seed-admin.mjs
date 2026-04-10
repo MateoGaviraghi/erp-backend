@@ -1,12 +1,8 @@
-import { createHash } from 'crypto';
+import bcrypt from 'bcrypt';
 import pg from 'pg';
 import * as dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const bcrypt = require('bcrypt');
 
 // Load .env from project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -17,8 +13,13 @@ const { Pool } = pg;
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error('SEED_ADMIN_PASSWORD env variable is required');
+  }
+
   try {
-    const hash = await bcrypt.hash('NexaSoft2003', 10);
+    const hash = await bcrypt.hash(adminPassword, 10);
 
     // 1. Empresa
     await pool.query(`
