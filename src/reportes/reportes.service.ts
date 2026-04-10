@@ -371,7 +371,11 @@ export class ReportesService {
         _count: true,
       }),
       this.prisma.ordenProduccion.count({
-        where: { empresaId, ...localFilter, estado: { in: ['PLANIFICADA', 'EN_PROCESO'] } },
+        where: {
+          empresaId,
+          ...localFilter,
+          estado: { in: ['PLANIFICADA', 'EN_PROCESO'] },
+        },
       }),
       this.prisma.empleado.count({
         where: { empresaId, ...localFilter, active: true },

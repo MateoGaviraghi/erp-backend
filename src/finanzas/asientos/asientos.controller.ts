@@ -37,7 +37,9 @@ export class AsientosController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Crear asiento manual (guarda como BORRADOR sin validar balance)' })
+  @ApiOperation({
+    summary: 'Crear asiento manual (guarda como BORRADOR sin validar balance)',
+  })
   create(
     @Body() dto: CreateAsientoDto,
     @Query('localId', ParseUUIDPipe) localId: string,
@@ -47,7 +49,9 @@ export class AsientosController {
   }
 
   @Patch(':id/confirmar')
-  @ApiOperation({ summary: 'Confirmar asiento (valida que DEBE = HABER antes de confirmar)' })
+  @ApiOperation({
+    summary: 'Confirmar asiento (valida que DEBE = HABER antes de confirmar)',
+  })
   confirmar(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: JwtPayload,

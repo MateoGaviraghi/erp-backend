@@ -26,7 +26,15 @@ export class RecepcionesService {
           ordenCompra: {
             include: {
               proveedor: { select: { id: true, name: true } },
-              items: { select: { id: true, descripcion: true, cantidad: true, cantidadRecibida: true, unidad: true } },
+              items: {
+                select: {
+                  id: true,
+                  descripcion: true,
+                  cantidad: true,
+                  cantidadRecibida: true,
+                  unidad: true,
+                },
+              },
             },
           },
           items: true,
