@@ -66,13 +66,33 @@ export class PresupuestosService {
     });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
-    // Verificar productos y obtener nombres
+    // Validar que no haya productos duplicados en el presupuesto
     const productoIds = dto.items.map((i) => i.productoId);
+    const duplicados = productoIds.filter(
+      (id, idx) => productoIds.indexOf(id) !== idx,
+    );
+    if (duplicados.length > 0) {
+      throw new BadRequestException(
+        'No se puede agregar el mismo producto más de una vez. ' +
+          'Si necesitás más cantidad, modificá el campo "cantidad" en el item existente.',
+      );
+    }
+
+    // Verificar que todos los productos existan y estén activos
     const productos = await this.prisma.producto.findMany({
-      where: { id: { in: productoIds }, empresaId: currentUser.empresaId },
+      where: {
+        id: { in: productoIds },
+        empresaId: currentUser.empresaId,
+        active: true,
+      },
     });
+
     if (productos.length !== productoIds.length) {
-      throw new BadRequestException('Uno o más productos no existen');
+      const encontrados = new Set(productos.map((p) => p.id));
+      const faltantes = productoIds.filter((id) => !encontrados.has(id));
+      throw new BadRequestException(
+        `Producto(s) no encontrado(s) o inactivo(s): ${faltantes.join(', ')}`,
+      );
     }
     const productoMap = new Map(productos.map((p) => [p.id, p]));
 
