@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY nest-cli.json tsconfig*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.js ./
 
 # Instalar TODAS las dependencias (dev incluidas para compilar)
 RUN npm ci
@@ -32,6 +33,7 @@ ENV NODE_ENV=production
 # Copiar manifests
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.js ./
 
 # Solo dependencias de producción
 RUN npm ci --omit=dev && npm cache clean --force
