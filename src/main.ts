@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
+import { json, urlencoded, type Request, type Response, type NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -16,17 +17,31 @@ async function bootstrap() {
     logger: isProduction
       ? ['error', 'warn', 'log']
       : ['error', 'warn', 'log', 'debug', 'verbose'],
+    bodyParser: false,
   });
+  // Use strict:false so that a null (or scalar) JSON body doesn't throw a
+  // SyntaxError before reaching the route — affects /auth/refresh among others.
+  app.use(json({ strict: false }));
+  app.use(urlencoded({ extended: true }));
+  // Safety net: if body-parser still throws a SyntaxError (malformed JSON),
+  // clear the body and let the request continue instead of returning 400.
+  app.use(
+    (err: unknown, _req: Request, _res: Response, next: NextFunction) => {
+      if (err instanceof SyntaxError && 'body' in err) {
+        next();
+        return;
+      }
+      next(err);
+    },
+  );
+
   const configService = app.get(ConfigService);
 
   app.setGlobalPrefix('api/v1');
   app.use(helmet());
 
-  const corsOrigins = (
-    configService.get<string>('CORS_ORIGINS') ?? 'http://localhost:3000'
-  ).split(',');
   app.enableCors({
-    origin: corsOrigins,
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

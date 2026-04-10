@@ -8,8 +8,3 @@ export interface JwtPayload {
   empresaId: string;
   localId: string | null;
 }
-
-export interface JwtRefreshPayload {
-  sub: string; // usuarioId
-  tokenId: string; // ID del RefreshToken en DB (para validar que no fue revocado)
-}

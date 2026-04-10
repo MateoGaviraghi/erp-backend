@@ -17,10 +17,11 @@ export class EmpresasService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(currentUser: JwtPayload) {
-    const where =
-      currentUser.rol === UserRole.Administrador
-        ? {}
-        : { id: currentUser.empresaId };
+    const isSuperOrAdmin =
+      currentUser.rol === UserRole.Super ||
+      currentUser.rol === UserRole.Administrador;
+
+    const where = isSuperOrAdmin ? {} : { id: currentUser.empresaId };
 
     const data = await this.prisma.empresa.findMany({
       where,
@@ -32,6 +33,7 @@ export class EmpresasService {
 
   async findOne(id: string, currentUser: JwtPayload) {
     if (
+      currentUser.rol !== UserRole.Super &&
       currentUser.rol !== UserRole.Administrador &&
       id !== currentUser.empresaId
     ) {

@@ -24,8 +24,12 @@ export class RecepcionesService {
         where,
         include: {
           ordenCompra: {
-            include: { proveedor: { select: { id: true, name: true } } },
+            include: {
+              proveedor: { select: { id: true, name: true } },
+              items: { select: { id: true, descripcion: true, cantidad: true, cantidadRecibida: true, unidad: true } },
+            },
           },
+          items: true,
         },
         skip: pagination.skip,
         take: pagination.limit,
@@ -40,7 +44,7 @@ export class RecepcionesService {
   async create(dto: CreateRecepcionDto, currentUser: JwtPayload) {
     const orden = await this.prisma.ordenCompra.findFirst({
       where: { id: dto.ordenCompraId, empresaId: currentUser.empresaId },
-      include: { items: { include: { producto: true } } },
+      include: { items: { include: { producto: true } }, proveedor: true },
     });
 
     if (!orden) {
@@ -193,6 +197,30 @@ export class RecepcionesService {
         where: { id: orden.id },
         data: { estado: nuevoEstado },
       });
+
+      // Crear cuenta por pagar la primera vez que se recepciona esta orden
+      const cxpExistente = await tx.cuentaPorPagar.findUnique({
+        where: { ordenCompraId: orden.id },
+      });
+      if (!cxpExistente) {
+        const paymentTerms = orden.proveedor.paymentTerms ?? 30;
+        const fechaVencimiento = new Date(
+          recepcion.fechaRecepcion.getTime() +
+            paymentTerms * 24 * 60 * 60 * 1000,
+        );
+        await tx.cuentaPorPagar.create({
+          data: {
+            empresaId: currentUser.empresaId,
+            localId: orden.localId,
+            proveedorId: orden.proveedorId,
+            ordenCompraId: orden.id,
+            fechaEmision: recepcion.fechaRecepcion,
+            fechaVencimiento,
+            montoTotal: orden.total,
+            montoSaldo: orden.total,
+          },
+        });
+      }
 
       return { data: { recepcion, ordenEstadoNuevo: nuevoEstado } };
     });

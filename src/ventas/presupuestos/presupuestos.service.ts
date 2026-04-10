@@ -153,12 +153,11 @@ export class PresupuestosService {
     }
 
     if (
-      presupuesto.estado === EstadoPresupuesto.APROBADO ||
-      presupuesto.estado === EstadoPresupuesto.RECHAZADO ||
-      presupuesto.estado === EstadoPresupuesto.VENCIDO
+      presupuesto.estado !== EstadoPresupuesto.ENVIADO &&
+      presupuesto.estado !== EstadoPresupuesto.APROBADO
     ) {
       throw new BadRequestException(
-        `No se puede convertir un presupuesto en estado ${presupuesto.estado}`,
+        `No se puede convertir un presupuesto en estado ${presupuesto.estado}. Debe estar en ENVIADO o APROBADO`,
       );
     }
 

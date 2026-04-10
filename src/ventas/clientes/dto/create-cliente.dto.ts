@@ -13,12 +13,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
 
 export class CreateClienteDto {
-  @ApiProperty({ example: 'CLI-001' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(20)
-  code: string;
-
   @ApiProperty({ example: 'Supermercados del Norte S.A.' })
   @IsString()
   @IsNotEmpty()
@@ -76,10 +70,10 @@ export class CreateClienteDto {
   @Min(0)
   @Type(() => Number)
   creditLimit?: number;
-}
 
-export class UpdateClienteDto extends PartialType(CreateClienteDto) {
   @ApiPropertyOptional()
   @IsOptional()
   active?: boolean;
 }
+
+export class UpdateClienteDto extends PartialType(CreateClienteDto) {}

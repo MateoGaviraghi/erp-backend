@@ -28,7 +28,8 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Sin permisos para esta acción');
     }
 
-    const hasRole = requiredRoles.includes(user.rol);
+    const hasRole =
+      user.rol === UserRole.Super || requiredRoles.includes(user.rol);
     if (!hasRole) {
       throw new ForbiddenException(
         `Se requiere uno de estos roles: ${requiredRoles.join(', ')}`,

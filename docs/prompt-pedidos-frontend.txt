@@ -1,0 +1,201 @@
+Prompt para Frontend — Módulo de Pedidos de Venta
+==================================================
+
+Contexto general
+----------------
+- Base URL: https://<BACKEND_URL>/api/v1
+- Autenticación: Todos los endpoints requieren Authorization: Bearer <JWT>.
+- Respuestas: JSON con forma { data: {...} } para recursos individuales
+  y { data: [...], meta: { page, limit, total, totalPages } } para listas.
+
+IMPORTANTE: Los pedidos NO se crean directamente. Se generan al convertir
+un presupuesto. No existe endpoint de eliminación; el ciclo de vida se
+gestiona por cambios de estado.
+
+
+Parámetros de paginación comunes (query string)
+-----------------------------------------------
+| Parámetro | Tipo     | Default | Descripción                  |
+|-----------|----------|---------|------------------------------|
+| page      | number   | 1       | Número de página             |
+| limit     | number   | 20      | Ítems por página (máx. 100)  |
+| localId   | uuid     | —       | Filtrar por local            |
+
+
+Estados posibles de un pedido (EstadoPedido)
+--------------------------------------------
+PENDIENTE → CONFIRMADO → EN_PREPARACION → LISTO → ENVIADO → ENTREGADO
+                                                          ↘ CANCELADO
+
+
+==================================================
+GET /pedidos
+==================================================
+Lista todos los pedidos de la empresa del usuario autenticado.
+
+Query params: page, limit, localId
+
+Respuesta:
+{
+  "data": [
+    {
+      "id": "uuid",
+      "numero": "PED-000001",
+      "fecha": "2026-03-26T10:00:00.000Z",
+      "fechaEntregaEstimada": "2026-04-02T10:00:00.000Z",
+      "fechaEntregaReal": null,
+      "estado": "PENDIENTE",
+      "subtotal": 5000.00,
+      "descuento": 0.00,
+      "impuestos": 0.00,
+      "total": 5000.00,
+      "vendedor": "Juan Pérez",
+      "notas": null,
+      "clienteId": "uuid",
+      "localId": "uuid",
+      "presupuestoId": "uuid",
+      "cliente": { "id": "uuid", "code": "CLI-001", "name": "Empresa S.A." },
+      "_count": { "items": 3 }
+    }
+  ],
+  "meta": { "page": 1, "limit": 20, "total": 10, "totalPages": 1 }
+}
+
+
+==================================================
+GET /pedidos/:id
+==================================================
+Obtiene un pedido con todos sus ítems, cliente, presupuesto origen
+y factura asociada.
+
+Respuesta:
+{
+  "data": {
+    "id": "uuid",
+    "numero": "PED-000001",
+    "fecha": "2026-03-26T10:00:00.000Z",
+    "fechaEntregaEstimada": "2026-04-02T10:00:00.000Z",
+    "fechaEntregaReal": null,
+    "estado": "PENDIENTE",
+    "subtotal": 5000.00,
+    "descuento": 0.00,
+    "impuestos": 0.00,
+    "total": 5000.00,
+    "vendedor": "Juan Pérez",
+    "notas": "Entrega urgente",
+    "cliente": {
+      "id": "uuid",
+      "code": "CLI-001",
+      "name": "Empresa S.A.",
+      "ruc": "...",
+      "email": "..."
+    },
+    "presupuesto": { "id": "uuid", "numero": "PRES-000001" },
+    "factura": { "id": "uuid", "numero": "FAC-000001", "estado": "EMITIDA" },
+    "items": [
+      {
+        "id": "uuid",
+        "productoId": "uuid",
+        "productoNombre": "Producto A - Premium",
+        "cantidad": 10,
+        "cantidadEntregada": 0,
+        "precioUnitario": 500.00,
+        "descuento": 0.00,
+        "subtotal": 5000.00,
+        "producto": {
+          "id": "uuid",
+          "code": "PROD-001",
+          "name": "Producto A - Premium",
+          "unit": "UNI"
+        }
+      }
+    ]
+  }
+}
+
+
+==================================================
+POST /presupuestos/:id/convertir-pedido   ← CREA EL PEDIDO
+==================================================
+Convierte un presupuesto en pedido. El presupuesto pasa a estado
+APROBADO automáticamente.
+
+Requisitos:
+- El presupuesto NO debe estar en estado APROBADO, RECHAZADO o VENCIDO.
+- El presupuesto NO debe tener ya un pedido asociado.
+- El pedido se crea con estado PENDIENTE, fecha = hoy,
+  fechaEntregaEstimada = hoy + 7 días.
+
+No requiere body.
+
+Respuesta 201:
+{
+  "data": {
+    "id": "uuid",
+    "numero": "PED-000001",
+    "estado": "PENDIENTE",
+    "clienteId": "uuid",
+    "localId": "uuid",
+    "subtotal": 5000.00,
+    "total": 5000.00,
+    "cliente": { "id": "uuid", "name": "Empresa S.A." },
+    "items": [
+      {
+        "id": "uuid",
+        "productoNombre": "Producto A - Premium",
+        "cantidad": 10,
+        "cantidadEntregada": 0,
+        "precioUnitario": 500.00,
+        "descuento": 0.00,
+        "subtotal": 5000.00
+      }
+    ]
+  }
+}
+
+
+==================================================
+POST /pedidos/:id/aprobar
+==================================================
+Avanza el estado del pedido de PENDIENTE a CONFIRMADO.
+Falla con 400 si el pedido no está en estado PENDIENTE.
+
+No requiere body.
+
+Respuesta:
+{
+  "data": {
+    "id": "uuid",
+    "numero": "PED-000001",
+    "estado": "CONFIRMADO",
+    ...
+  }
+}
+
+
+==================================================
+Errores comunes
+==================================================
+| Código | Situación                                                    |
+|--------|--------------------------------------------------------------|
+| 400    | Presupuesto ya tiene un pedido asociado                      |
+| 400    | Presupuesto en estado no convertible (APROBADO/RECHAZADO/    |
+|        | VENCIDO)                                                     |
+| 400    | Intentar aprobar un pedido que no está en PENDIENTE          |
+| 404    | Pedido o presupuesto no encontrado                           |
+| 401    | Token inválido o ausente                                     |
+
+
+==================================================
+Resumen de rutas
+==================================================
+| Método | Path                                    | Auth | Descripción                          |
+|--------|-----------------------------------------|------|--------------------------------------|
+| GET    | /pedidos                                | JWT  | Listar pedidos paginados             |
+| GET    | /pedidos/:id                            | JWT  | Obtener pedido con ítems completos   |
+| POST   | /presupuestos/:id/convertir-pedido      | JWT  | Crear pedido desde presupuesto       |
+| POST   | /pedidos/:id/aprobar                    | JWT  | Aprobar pedido (PENDIENTE→CONFIRMADO)|
+
+NOTA: No existen endpoints de PATCH directo ni DELETE para pedidos.
+Los cambios de estado posteriores a CONFIRMADO se gestionan desde otros
+módulos (preparación, despacho, facturación).

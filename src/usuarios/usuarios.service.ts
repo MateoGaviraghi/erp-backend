@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUsuarioDto } from './dto/create-usuario.dto.js';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto.js';
 import { PaginationDto, buildMeta } from '../common/dto/pagination.dto.js';
+import { UserRole } from '@prisma/client';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
 import * as bcrypt from 'bcrypt';
 
@@ -16,8 +17,13 @@ export class UsuariosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(currentUser: JwtPayload, pagination: PaginationDto) {
+    const isSuper = currentUser.rol === UserRole.Super;
+    const targetEmpresaId = isSuper
+      ? (pagination.empresaId ?? undefined)
+      : currentUser.empresaId;
+
     const where = {
-      empresaId: currentUser.empresaId,
+      ...(targetEmpresaId ? { empresaId: targetEmpresaId } : {}),
       ...(pagination.localId && { localId: pagination.localId }),
       ...(pagination.search && {
         OR: [
@@ -47,6 +53,7 @@ export class UsuariosService {
           rol: true,
           active: true,
           localId: true,
+          empresaId: true,
           createdAt: true,
           local: { select: { name: true } },
         },
@@ -77,7 +84,7 @@ export class UsuariosService {
       },
     });
 
-    if (!usuario || usuario.empresaId !== currentUser.empresaId) {
+    if (!usuario || (currentUser.rol !== UserRole.Super && usuario.empresaId !== currentUser.empresaId)) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
@@ -94,12 +101,18 @@ export class UsuariosService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const empresaId =
+      currentUser.rol === UserRole.Super && dto.empresaId
+        ? dto.empresaId
+        : currentUser.empresaId;
+
+    const { empresaId: _ignored, ...dtoWithoutEmpresaId } = dto;
 
     const usuario = await this.prisma.usuario.create({
       data: {
-        ...dto,
+        ...dtoWithoutEmpresaId,
         password: passwordHash,
-        empresaId: currentUser.empresaId,
+        empresaId,
       },
       select: {
         id: true,
@@ -150,11 +163,6 @@ export class UsuariosService {
     await this.prisma.usuario.update({
       where: { id },
       data: { password: passwordHash },
-    });
-
-    await this.prisma.refreshToken.updateMany({
-      where: { usuarioId: id, revoked: false },
-      data: { revoked: true },
     });
 
     return {

@@ -7,7 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateCobranzaDto } from './dto/create-cobranza.dto.js';
 import { PaginationDto, buildMeta } from '../../common/dto/pagination.dto.js';
 import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface.js';
-import { EstadoFactura } from '@prisma/client';
+import { EstadoFactura, EstadoCuentaCobrar } from '@prisma/client';
 
 @Injectable()
 export class CobranzasService {
@@ -87,6 +87,25 @@ export class CobranzasService {
         where: { id: factura.id },
         data: { estado: nuevoEstado },
       });
+
+      // Actualizar cuenta por cobrar
+      const cxc = await tx.cuentaPorCobrar.findUnique({
+        where: { facturaId: factura.id },
+      });
+      if (cxc) {
+        const nuevoMontoPagado = Number(cxc.montoPagado) + dto.monto;
+        const nuevoSaldo = Number(cxc.montoTotal) - nuevoMontoPagado;
+        const nuevoEstadoCxc: EstadoCuentaCobrar =
+          nuevoSaldo <= 0.01 ? 'PAGADA' : 'PARCIAL';
+        await tx.cuentaPorCobrar.update({
+          where: { id: cxc.id },
+          data: {
+            montoPagado: nuevoMontoPagado,
+            montoSaldo: Math.max(0, nuevoSaldo),
+            estado: nuevoEstadoCxc,
+          },
+        });
+      }
 
       return { data: cobranza };
     });
