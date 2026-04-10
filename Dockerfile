@@ -1,7 +1,13 @@
 # =============================================================================
 # Stage 1 — Build
 # =============================================================================
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
+
+# Parchear vulnerabilidades del OS base
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -24,7 +30,12 @@ RUN npm run build
 # =============================================================================
 # Stage 2 — Production
 # =============================================================================
-FROM node:22-alpine AS production
+FROM node:22-slim AS production
+
+# Parchear vulnerabilidades del OS base
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -33,13 +44,12 @@ ENV NODE_ENV=production
 # Copiar manifests
 COPY package*.json ./
 COPY prisma ./prisma/
-COPY prisma.config.js ./
 
-# Solo dependencias de producción
+# Solo dependencias de producción (dotenv es devDep — no se instala aquí)
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Generar Prisma Client en producción
-RUN npx prisma generate
+# Copiar Prisma Client ya generado desde el builder (evita necesitar dotenv)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copiar el build compilado desde la etapa anterior
 COPY --from=builder /app/dist ./dist
