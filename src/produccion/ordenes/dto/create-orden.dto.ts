@@ -12,20 +12,20 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateOrdenProduccionDto {
   @ApiProperty({ description: 'ID del BOM a utilizar' })
   @IsUUID()
-  bomId: string;
+  bomId!: string;
 
   @ApiProperty({ example: 50, description: 'Cantidad de unidades a producir' })
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidadPlanificada: number;
+  cantidadPlanificada!: number;
 
   @ApiProperty({
     example: '2026-12-31',
     description: 'Fecha estimada de finalización',
   })
   @IsDateString()
-  fechaFinPlanificada: string;
+  fechaFinPlanificada!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -50,11 +50,11 @@ export class FinalizarOrdenDto {
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidadRealizada: number;
+  cantidadRealizada!: number;
 }
 
 export class CancelarOrdenDto {
   @ApiProperty({ example: 'Falta de materiales' })
   @IsString()
-  motivo: string;
+  motivo!: string;
 }

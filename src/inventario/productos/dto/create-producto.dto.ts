@@ -19,13 +19,13 @@ export class CreateProductoDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'Producto A - Premium' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: 'Producto de alta calidad' })
   @IsOptional()
@@ -40,31 +40,31 @@ export class CreateProductoDto {
 
   @ApiProperty({ enum: TipoProducto, example: TipoProducto.TERMINADO })
   @IsEnum(TipoProducto)
-  tipo: TipoProducto;
+  tipo!: TipoProducto;
 
   @ApiProperty({ example: 'UNI', description: 'Unidad de medida' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(10)
-  unit: string;
+  unit!: string;
 
   @ApiProperty({ example: 600.0 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  cost: number;
+  cost!: number;
 
   @ApiProperty({ example: 1000.0 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  price: number;
+  price!: number;
 
   @ApiProperty({ example: 20, description: 'Stock mínimo para alertas' })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
-  minStock: number;
+  minStock!: number;
 }
 
 export class UpdateProductoDto extends PartialType(CreateProductoDto) {

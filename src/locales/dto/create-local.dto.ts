@@ -15,13 +15,13 @@ export class CreateLocalDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'Local Santa Fe' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: 'San Martín 2450' })
   @IsOptional()

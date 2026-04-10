@@ -14,18 +14,18 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateMovimientoBancarioDto {
   @ApiProperty({ description: 'ID de la cuenta bancaria' })
   @IsUUID()
-  cuentaBancariaId: string;
+  cuentaBancariaId!: string;
 
   @ApiProperty({ enum: ['CREDITO', 'DEBITO'], example: 'CREDITO' })
   @IsString()
   @IsIn(['CREDITO', 'DEBITO'])
-  tipo: string;
+  tipo!: string;
 
   @ApiProperty({ example: 10000.0 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Type(() => Number)
-  monto: number;
+  monto!: number;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -35,7 +35,7 @@ export class CreateMovimientoBancarioDto {
   @ApiProperty({ example: 'Cobro cliente X' })
   @IsString()
   @IsNotEmpty()
-  concepto: string;
+  concepto!: string;
 
   @ApiPropertyOptional({ example: '000001234567' })
   @IsOptional()

@@ -5,17 +5,17 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class TransferenciaStockDto {
   @ApiProperty({ description: 'ID del producto a transferir' })
   @IsUUID()
-  productoId: string;
+  productoId!: string;
 
   @ApiProperty({ description: 'ID del local destino' })
   @IsUUID()
-  localDestinoId: string;
+  localDestinoId!: string;
 
   @ApiProperty({ example: 20 })
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidad: number;
+  cantidad!: number;
 
   @ApiPropertyOptional()
   @IsOptional()

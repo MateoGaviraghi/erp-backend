@@ -14,19 +14,19 @@ export class CreateEmpresaDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  code: string;
+  code!: string;
 
   @ApiProperty({ example: 'Empresa Principal S.A.' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  name: string;
+  name!: string;
 
   @ApiProperty({ example: '30-12345678-9', description: 'CUIT de la empresa' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  taxId: string;
+  taxId!: string;
 
   @ApiPropertyOptional({ example: 'Av. Libertador 1500' })
   @IsOptional()

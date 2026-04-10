@@ -23,25 +23,25 @@ export class ItemOrdenCompraDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  descripcion: string;
+  descripcion!: string;
 
   @ApiProperty({ example: 100 })
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0.001)
   @Type(() => Number)
-  cantidad: number;
+  cantidad!: number;
 
   @ApiProperty({ example: 'KG' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  unidad: string;
+  unidad!: string;
 
   @ApiProperty({ example: 450.0, description: 'Precio unitario de compra' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
-  precioUnitario: number;
+  precioUnitario!: number;
 
   @ApiPropertyOptional({ example: 0, description: 'Descuento en %' })
   @IsOptional()
@@ -54,7 +54,7 @@ export class ItemOrdenCompraDto {
 export class CreateOrdenCompraDto {
   @ApiProperty({ description: 'ID del proveedor seleccionado' })
   @IsUUID()
-  proveedorId: string;
+  proveedorId!: string;
 
   @ApiPropertyOptional({
     description: 'ID del requerimiento origen (opcional)',
@@ -83,5 +83,5 @@ export class CreateOrdenCompraDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemOrdenCompraDto)
-  items: ItemOrdenCompraDto[];
+  items!: ItemOrdenCompraDto[];
 }
