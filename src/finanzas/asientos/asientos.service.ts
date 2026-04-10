@@ -53,9 +53,7 @@ export class AsientosService {
       throw new BadRequestException('Un asiento debe tener al menos 2 líneas');
     }
 
-    const lineasInvalidas = dto.detalles.filter(
-      (d) => d.debe + d.haber <= 0,
-    );
+    const lineasInvalidas = dto.detalles.filter((d) => d.debe + d.haber <= 0);
     if (lineasInvalidas.length > 0) {
       throw new BadRequestException(
         'Cada línea debe tener un monto mayor a 0 en DEBE o HABER',
@@ -129,10 +127,7 @@ export class AsientosService {
       );
     }
 
-    const totalDebe = asiento.detalles.reduce(
-      (s, d) => s + Number(d.debe),
-      0,
-    );
+    const totalDebe = asiento.detalles.reduce((s, d) => s + Number(d.debe), 0);
     const totalHaber = asiento.detalles.reduce(
       (s, d) => s + Number(d.haber),
       0,

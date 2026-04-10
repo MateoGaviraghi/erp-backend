@@ -40,4 +40,9 @@ export class CreatePagoProveedorDto {
   @IsOptional()
   @IsUUID()
   cuentaPagarId?: string;
+
+  @ApiPropertyOptional({ example: 'Pago correspondiente a factura #123' })
+  @IsOptional()
+  @IsString()
+  notas?: string;
 }

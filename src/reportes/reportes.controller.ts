@@ -58,7 +58,7 @@ export class ReportesController {
         total: resultado.data.resumen.totalFacturado,
         estado: '',
       };
-      return ExcelBuilder.build(
+      await ExcelBuilder.build(
         res,
         'Reporte_Ventas',
         'Ventas',
@@ -74,6 +74,7 @@ export class ReportesController {
         filas,
         totales,
       );
+      return;
     }
     return resultado;
   }
@@ -96,7 +97,7 @@ export class ReportesController {
   ) {
     const resultado = await this.service.reporteInventario(dto, user);
     if (dto.formato === FormatoReporte.XLSX) {
-      return ExcelBuilder.build(
+      await ExcelBuilder.build(
         res,
         'Reporte_Inventario',
         'Stock',
@@ -124,6 +125,7 @@ export class ReportesController {
           alertaStock: `${resultado.data.resumen.productosConAlerta} alertas`,
         },
       );
+      return;
     }
     return resultado;
   }
@@ -138,7 +140,7 @@ export class ReportesController {
   ) {
     const resultado = await this.service.reporteRrhh(dto, user);
     if (dto.formato === FormatoReporte.XLSX) {
-      return ExcelBuilder.build(
+      await ExcelBuilder.build(
         res,
         'Reporte_RRHH',
         'Liquidaciones',
@@ -166,6 +168,7 @@ export class ReportesController {
           estado: '',
         },
       );
+      return;
     }
     return resultado;
   }

@@ -84,7 +84,11 @@ export class UsuariosService {
       },
     });
 
-    if (!usuario || (currentUser.rol !== UserRole.Super && usuario.empresaId !== currentUser.empresaId)) {
+    if (
+      !usuario ||
+      (currentUser.rol !== UserRole.Super &&
+        usuario.empresaId !== currentUser.empresaId)
+    ) {
       throw new NotFoundException('Usuario no encontrado');
     }
 

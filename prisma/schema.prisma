@@ -6,8 +6,1025 @@ datasource db {
   provider = "postgresql"
 }
 
+model Empresa {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  code                  String                 @unique
+  name                  String
+  taxId                 String                 @unique
+  address               String?
+  city                  String?
+  state                 String?
+  phone                 String?
+  email                 String?
+  logo                  String?
+  active                Boolean                @default(true)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  asientosContables     AsientoContable[]
+  auditoriaLogs         AuditoriaLog[]
+  bancos                Banco[]
+  cheques               Cheque[]
+  clientes              Cliente[]
+  conveniosMultilateral ConvenioMultilateral[]
+  cuentasContables      CuentaContable[]
+  empleados             Empleado[]
+  locales               Local[]
+  ordenesProduccion     OrdenProduccion[]
+  productos             Producto[]
+  proveedores           Proveedor[]
+  retenciones           Retencion[]
+  usuarios              Usuario[]
+
+  @@map("empresas")
+}
+
+model Local {
+  id                String                @id @default(uuid()) @db.Uuid
+  empresaId         String                @db.Uuid
+  code              String
+  name              String
+  address           String?
+  city              String?
+  state             String?
+  phone             String?
+  email             String?
+  manager           String?
+  active            Boolean               @default(true)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  cajasLocales      CajaLocal[]
+  cheques           Cheque[]
+  clientes          Cliente[]
+  cuentasPorCobrar  CuentaPorCobrar[]
+  cuentasPorPagar   CuentaPorPagar[]
+  depositos         Deposito[]
+  facturas          Factura[]
+  empresa           Empresa               @relation(fields: [empresaId], references: [id])
+  movimientosStock  MovimientoStock[]
+  ordenesCompra     OrdenCompra[]
+  ordenesProduccion OrdenProduccion[]
+  pedidos           PedidoVenta[]
+  presupuestos      Presupuesto[]
+  proveedores       Proveedor[]
+  recepciones       RecepcionCompra[]
+  requerimientos    RequerimientoCompra[]
+  retenciones       Retencion[]
+  seguimientos      SeguimientoCliente[]
+  stock             Stock[]
+  usuarios          Usuario[]
+
+  @@unique([empresaId, code])
+  @@map("locales")
+}
+
+model Usuario {
+  id            String         @id @default(uuid()) @db.Uuid
+  empresaId     String         @db.Uuid
+  localId       String?        @db.Uuid
+  nombre        String
+  email         String         @unique
+  password      String
+  rol           UserRole
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  auditoriaLogs AuditoriaLog[]
+  empresa       Empresa        @relation(fields: [empresaId], references: [id])
+  local         Local?         @relation(fields: [localId], references: [id])
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id               String               @id @default(uuid()) @db.Uuid
+  empresaId        String               @db.Uuid
+  localId          String               @db.Uuid
+  code             String
+  name             String
+  taxId            String?
+  email            String?
+  phone            String?
+  address          String?
+  city             String?
+  state            String?
+  creditLimit      Decimal              @default(0) @db.Decimal(15, 2)
+  active           Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  empresa          Empresa              @relation(fields: [empresaId], references: [id])
+  local            Local                @relation(fields: [localId], references: [id])
+  cuentasPorCobrar CuentaPorCobrar[]
+  facturas         Factura[]
+  pedidos          PedidoVenta[]
+  presupuestos     Presupuesto[]
+  seguimientos     SeguimientoCliente[]
+
+  @@unique([empresaId, code])
+  @@index([empresaId, localId])
+  @@index([empresaId, active])
+  @@map("clientes")
+}
+
+model SeguimientoCliente {
+  id                 String          @id @default(uuid()) @db.Uuid
+  empresaId          String          @db.Uuid
+  localId            String          @db.Uuid
+  clienteId          String          @db.Uuid
+  tipo               TipoInteraccion
+  fecha              DateTime
+  asunto             String
+  descripcion        String
+  vendedor           String
+  proximoSeguimiento DateTime?
+  completado         Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  cliente            Cliente         @relation(fields: [clienteId], references: [id])
+  local              Local           @relation(fields: [localId], references: [id])
+
+  @@index([clienteId])
+  @@index([localId, completado])
+  @@map("seguimientos_cliente")
+}
+
+model Proveedor {
+  id              String               @id @default(uuid()) @db.Uuid
+  empresaId       String               @db.Uuid
+  localId         String               @db.Uuid
+  code            String
+  name            String
+  taxId           String?
+  email           String?
+  phone           String?
+  address         String?
+  city            String?
+  state           String?
+  paymentTerms    Int                  @default(30)
+  active          Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  cuentasPorPagar CuentaPorPagar[]
+  materiales      MaterialProduccion[]
+  ordenesCompra   OrdenCompra[]
+  empresa         Empresa              @relation(fields: [empresaId], references: [id])
+  local           Local                @relation(fields: [localId], references: [id])
+
+  @@unique([empresaId, code])
+  @@index([empresaId, localId])
+  @@map("proveedores")
+}
+
+model Categoria {
+  id          String     @id @default(uuid()) @db.Uuid
+  empresaId   String     @db.Uuid
+  name        String
+  description String?
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  productos   Producto[]
+
+  @@unique([empresaId, name])
+  @@map("categorias")
+}
+
+model Producto {
+  id               String            @id @default(uuid()) @db.Uuid
+  empresaId        String            @db.Uuid
+  code             String
+  name             String
+  description      String?
+  categoriaId      String?           @db.Uuid
+  tipo             TipoProducto      @default(TERMINADO)
+  unit             String            @default("UNI")
+  cost             Decimal           @default(0) @db.Decimal(15, 2)
+  price            Decimal           @default(0) @db.Decimal(15, 2)
+  minStock         Int               @default(0)
+  active           Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  boms             BOM[]
+  itemsOrdenCompra ItemOrdenCompra[]
+  itemsPedido      ItemPedido[]
+  itemsPresupuesto ItemPresupuesto[]
+  movimientos      MovimientoStock[]
+  categoria        Categoria?        @relation(fields: [categoriaId], references: [id])
+  empresa          Empresa           @relation(fields: [empresaId], references: [id])
+  stock            Stock[]
+
+  @@unique([empresaId, code])
+  @@index([empresaId, active])
+  @@map("productos")
+}
+
+model Deposito {
+  id        String   @id @default(uuid()) @db.Uuid
+  empresaId String   @db.Uuid
+  localId   String   @db.Uuid
+  code      String
+  name      String
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  local     Local    @relation(fields: [localId], references: [id])
+  stock     Stock[]
+
+  @@unique([empresaId, code])
+  @@map("depositos")
+}
+
+model Stock {
+  id         String    @id @default(uuid()) @db.Uuid
+  empresaId  String    @db.Uuid
+  localId    String    @db.Uuid
+  depositoId String?   @db.Uuid
+  productoId String    @db.Uuid
+  cantidad   Decimal   @default(0) @db.Decimal(15, 3)
+  updatedAt  DateTime  @updatedAt
+  deposito   Deposito? @relation(fields: [depositoId], references: [id])
+  local      Local     @relation(fields: [localId], references: [id])
+  producto   Producto  @relation(fields: [productoId], references: [id])
+
+  @@unique([localId, productoId, depositoId])
+  @@index([empresaId, localId])
+  @@map("stock")
+}
+
+model MovimientoStock {
+  id             String              @id @default(uuid()) @db.Uuid
+  empresaId      String              @db.Uuid
+  localId        String              @db.Uuid
+  localDestinoId String?             @db.Uuid
+  productoId     String              @db.Uuid
+  tipo           TipoMovimientoStock
+  cantidad       Decimal             @db.Decimal(15, 3)
+  referencia     String?
+  referenciaId   String?
+  observaciones  String?
+  creadoPor      String
+  fecha          DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+  local          Local               @relation(fields: [localId], references: [id])
+  producto       Producto            @relation(fields: [productoId], references: [id])
+
+  @@index([empresaId, localId])
+  @@index([productoId])
+  @@index([fecha])
+  @@map("movimientos_stock")
+}
+
+model Presupuesto {
+  id               String            @id @default(uuid()) @db.Uuid
+  empresaId        String            @db.Uuid
+  localId          String            @db.Uuid
+  numero           String
+  clienteId        String            @db.Uuid
+  fecha            DateTime
+  fechaVencimiento DateTime
+  subtotal         Decimal           @db.Decimal(15, 2)
+  descuento        Decimal           @default(0) @db.Decimal(15, 2)
+  impuestos        Decimal           @default(0) @db.Decimal(15, 2)
+  total            Decimal           @db.Decimal(15, 2)
+  estado           EstadoPresupuesto @default(BORRADOR)
+  notas            String?
+  vendedor         String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  items            ItemPresupuesto[]
+  pedido           PedidoVenta?
+  cliente          Cliente           @relation(fields: [clienteId], references: [id])
+  local            Local             @relation(fields: [localId], references: [id])
+
+  @@unique([empresaId, numero])
+  @@index([empresaId, localId])
+  @@index([clienteId])
+  @@index([estado])
+  @@map("presupuestos")
+}
+
+model ItemPresupuesto {
+  id             String      @id @default(uuid()) @db.Uuid
+  presupuestoId  String      @db.Uuid
+  productoId     String      @db.Uuid
+  productoNombre String
+  cantidad       Decimal     @db.Decimal(15, 3)
+  precioUnitario Decimal     @db.Decimal(15, 2)
+  descuento      Decimal     @default(0) @db.Decimal(5, 2)
+  subtotal       Decimal     @db.Decimal(15, 2)
+  presupuesto    Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+  producto       Producto    @relation(fields: [productoId], references: [id])
+
+  @@map("items_presupuesto")
+}
+
+model PedidoVenta {
+  id                   String       @id @default(uuid()) @db.Uuid
+  empresaId            String       @db.Uuid
+  localId              String       @db.Uuid
+  numero               String
+  presupuestoId        String?      @unique @db.Uuid
+  clienteId            String       @db.Uuid
+  fecha                DateTime
+  fechaEntregaEstimada DateTime
+  fechaEntregaReal     DateTime?
+  subtotal             Decimal      @db.Decimal(15, 2)
+  descuento            Decimal      @default(0) @db.Decimal(15, 2)
+  impuestos            Decimal      @default(0) @db.Decimal(15, 2)
+  total                Decimal      @db.Decimal(15, 2)
+  estado               EstadoPedido @default(PENDIENTE)
+  notas                String?
+  vendedor             String
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  factura              Factura?
+  items                ItemPedido[]
+  cliente              Cliente      @relation(fields: [clienteId], references: [id])
+  local                Local        @relation(fields: [localId], references: [id])
+  presupuesto          Presupuesto? @relation(fields: [presupuestoId], references: [id])
+
+  @@unique([empresaId, numero])
+  @@index([empresaId, localId])
+  @@index([clienteId])
+  @@index([estado])
+  @@map("pedidos_venta")
+}
+
+model ItemPedido {
+  id                String      @id @default(uuid()) @db.Uuid
+  pedidoId          String      @db.Uuid
+  productoId        String      @db.Uuid
+  productoNombre    String
+  cantidad          Decimal     @db.Decimal(15, 3)
+  cantidadEntregada Decimal     @default(0) @db.Decimal(15, 3)
+  precioUnitario    Decimal     @db.Decimal(15, 2)
+  descuento         Decimal     @default(0) @db.Decimal(5, 2)
+  subtotal          Decimal     @db.Decimal(15, 2)
+  pedido            PedidoVenta @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  producto          Producto    @relation(fields: [productoId], references: [id])
+
+  @@map("items_pedido")
+}
+
+model Factura {
+  id               String           @id @default(uuid()) @db.Uuid
+  empresaId        String           @db.Uuid
+  localId          String           @db.Uuid
+  numero           String
+  pedidoId         String?          @unique @db.Uuid
+  clienteId        String           @db.Uuid
+  fecha            DateTime
+  fechaVencimiento DateTime
+  subtotal         Decimal          @db.Decimal(15, 2)
+  descuento        Decimal          @default(0) @db.Decimal(15, 2)
+  impuestos        Decimal          @default(0) @db.Decimal(15, 2)
+  total            Decimal          @db.Decimal(15, 2)
+  estado           EstadoFactura    @default(PENDIENTE)
+  notas            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  cobranzas        Cobranza[]
+  cuentaPorCobrar  CuentaPorCobrar?
+  cliente          Cliente          @relation(fields: [clienteId], references: [id])
+  local            Local            @relation(fields: [localId], references: [id])
+  pedido           PedidoVenta?     @relation(fields: [pedidoId], references: [id])
+
+  @@unique([empresaId, numero])
+  @@index([empresaId, localId])
+  @@index([clienteId])
+  @@index([estado])
+  @@map("facturas")
+}
+
+model Cobranza {
+  id         String   @id @default(uuid()) @db.Uuid
+  empresaId  String   @db.Uuid
+  localId    String   @db.Uuid
+  facturaId  String   @db.Uuid
+  fecha      DateTime
+  monto      Decimal  @db.Decimal(15, 2)
+  metodoPago String
+  referencia String?
+  notas      String?
+  creadoPor  String
+  createdAt  DateTime @default(now())
+  factura    Factura  @relation(fields: [facturaId], references: [id])
+
+  @@index([facturaId])
+  @@map("cobranzas")
+}
+
+model RequerimientoCompra {
+  id                String              @id @default(uuid()) @db.Uuid
+  empresaId         String              @db.Uuid
+  localId           String              @db.Uuid
+  numero            String
+  solicitante       String
+  departamento      String
+  fecha             DateTime
+  fechaNecesidad    DateTime
+  justificacion     String
+  estado            EstadoRequerimiento @default(PENDIENTE)
+  autorizadoPor     String?
+  fechaAutorizacion DateTime?
+  proveedorSugerido String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  items             ItemRequerimiento[]
+  ordenCompra       OrdenCompra?
+  local             Local               @relation(fields: [localId], references: [id])
+
+  @@unique([empresaId, numero])
+  @@index([empresaId, localId])
+  @@map("requerimientos_compra")
+}
+
+model ItemRequerimiento {
+  id              String              @id @default(uuid()) @db.Uuid
+  requerimientoId String              @db.Uuid
+  productoId      String?             @db.Uuid
+  descripcion     String
+  cantidad        Decimal             @db.Decimal(15, 3)
+  unidad          String
+  precioEstimado  Decimal?            @db.Decimal(15, 2)
+  observaciones   String?
+  requerimiento   RequerimientoCompra @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
+
+  @@map("items_requerimiento")
+}
+
+model OrdenCompra {
+  id                   String               @id @default(uuid()) @db.Uuid
+  empresaId            String               @db.Uuid
+  localId              String               @db.Uuid
+  numero               String
+  proveedorId          String               @db.Uuid
+  requerimientoId      String?              @unique @db.Uuid
+  fecha                DateTime
+  fechaEntregaEstimada DateTime
+  subtotal             Decimal              @db.Decimal(15, 2)
+  impuestos            Decimal              @default(0) @db.Decimal(15, 2)
+  total                Decimal              @db.Decimal(15, 2)
+  estado               EstadoOrdenCompra    @default(BORRADOR)
+  condicionesPago      String?
+  observaciones        String?
+  responsable          String
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  cuentaPorPagar       CuentaPorPagar?
+  items                ItemOrdenCompra[]
+  local                Local                @relation(fields: [localId], references: [id])
+  proveedor            Proveedor            @relation(fields: [proveedorId], references: [id])
+  requerimiento        RequerimientoCompra? @relation(fields: [requerimientoId], references: [id])
+  recepciones          RecepcionCompra[]
+
+  @@unique([empresaId, numero])
+  @@index([empresaId, localId])
+  @@index([proveedorId])
+  @@map("ordenes_compra")
+}
+
+model ItemOrdenCompra {
+  id               String      @id @default(uuid()) @db.Uuid
+  ordenCompraId    String      @db.Uuid
+  productoId       String?     @db.Uuid
+  descripcion      String
+  cantidad         Decimal     @db.Decimal(15, 3)
+  cantidadRecibida Decimal     @default(0) @db.Decimal(15, 3)
+  unidad           String
+  precioUnitario   Decimal     @db.Decimal(15, 2)
+  descuento        Decimal     @default(0) @db.Decimal(5, 2)
+  subtotal         Decimal     @db.Decimal(15, 2)
+  ordenCompra      OrdenCompra @relation(fields: [ordenCompraId], references: [id], onDelete: Cascade)
+  producto         Producto?   @relation(fields: [productoId], references: [id])
+
+  @@map("items_orden_compra")
+}
+
+model RecepcionCompra {
+  id             String          @id @default(uuid()) @db.Uuid
+  empresaId      String          @db.Uuid
+  localId        String          @db.Uuid
+  numero         String
+  ordenCompraId  String          @db.Uuid
+  fechaRecepcion DateTime
+  observaciones  String?
+  recibidoPor    String
+  conformidad    Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  items          ItemRecepcion[]
+  local          Local           @relation(fields: [localId], references: [id])
+  ordenCompra    OrdenCompra     @relation(fields: [ordenCompraId], references: [id])
+
+  @@unique([empresaId, numero])
+  @@index([ordenCompraId])
+  @@map("recepciones_compra")
+}
+
+model ItemRecepcion {
+  id                String          @id @default(uuid()) @db.Uuid
+  recepcionId       String          @db.Uuid
+  itemOrdenCompraId String          @db.Uuid
+  descripcion       String
+  cantidadOrdenada  Decimal         @db.Decimal(15, 3)
+  cantidadRecibida  Decimal         @db.Decimal(15, 3)
+  cantidadAceptada  Decimal         @db.Decimal(15, 3)
+  cantidadRechazada Decimal         @default(0) @db.Decimal(15, 3)
+  motivoRechazo     String?
+  observaciones     String?
+  recepcion         RecepcionCompra @relation(fields: [recepcionId], references: [id], onDelete: Cascade)
+
+  @@map("items_recepcion")
+}
+
+model PagoProveedor {
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @db.Uuid
+  localId     String   @db.Uuid
+  proveedorId String   @db.Uuid
+  fecha       DateTime
+  monto       Decimal  @db.Decimal(15, 2)
+  metodoPago  String
+  referencia  String?
+  notas       String?
+  creadoPor   String
+  createdAt   DateTime @default(now())
+
+  @@index([proveedorId])
+  @@index([empresaId, localId])
+  @@map("pagos_proveedor")
+}
+
+model MaterialProduccion {
+  id            String       @id @default(uuid()) @db.Uuid
+  empresaId     String       @db.Uuid
+  localId       String       @db.Uuid
+  code          String
+  nombre        String
+  tipo          TipoProducto
+  unidad        String
+  stockActual   Decimal      @default(0) @db.Decimal(15, 3)
+  stockMinimo   Decimal      @default(0) @db.Decimal(15, 3)
+  stockMaximo   Decimal      @default(0) @db.Decimal(15, 3)
+  costoUnitario Decimal      @default(0) @db.Decimal(15, 2)
+  proveedorId   String?      @db.Uuid
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  bomItems      BOMItem[]
+  proveedor     Proveedor?   @relation(fields: [proveedorId], references: [id])
+
+  @@unique([empresaId, code])
+  @@map("materiales_produccion")
+}
+
+model BOM {
+  id                String            @id @default(uuid()) @db.Uuid
+  empresaId         String            @db.Uuid
+  localId           String            @db.Uuid
+  code              String
+  productoId        String            @db.Uuid
+  productoNombre    String
+  cantidad          Decimal           @db.Decimal(15, 3)
+  unidad            String
+  costoTotal        Decimal           @default(0) @db.Decimal(15, 2)
+  version           Int               @default(1)
+  activo            Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  producto          Producto          @relation(fields: [productoId], references: [id])
+  materiales        BOMItem[]
+  ordenesProduccion OrdenProduccion[]
+
+  @@unique([empresaId, code])
+  @@map("bom")
+}
+
+model BOMItem {
+  id             String             @id @default(uuid()) @db.Uuid
+  bomId          String             @db.Uuid
+  materialId     String             @db.Uuid
+  materialNombre String
+  materialCode   String
+  cantidad       Decimal            @db.Decimal(15, 3)
+  unidad         String
+  costoUnitario  Decimal            @db.Decimal(15, 2)
+  costoTotal     Decimal            @db.Decimal(15, 2)
+  bom            BOM                @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  material       MaterialProduccion @relation(fields: [materialId], references: [id])
+
+  @@map("bom_items")
+}
+
+model OrdenProduccion {
+  id                  String                @id @default(uuid()) @db.Uuid
+  empresaId           String                @db.Uuid
+  localId             String                @db.Uuid
+  code                String
+  bomId               String                @db.Uuid
+  productoId          String                @db.Uuid
+  productoNombre      String
+  cantidadPlanificada Decimal               @db.Decimal(15, 3)
+  cantidadProducida   Decimal               @default(0) @db.Decimal(15, 3)
+  unidad              String
+  estado              EstadoOrdenProduccion @default(PLANIFICADA)
+  fechaInicio         DateTime
+  fechaFinPlanificada DateTime
+  fechaFinReal        DateTime?
+  operador            String
+  notas               String?
+  costoMateriales     Decimal               @default(0) @db.Decimal(15, 2)
+  costoManoObra       Decimal               @default(0) @db.Decimal(15, 2)
+  costoTotal          Decimal               @default(0) @db.Decimal(15, 2)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  bom                 BOM                   @relation(fields: [bomId], references: [id])
+  empresa             Empresa               @relation(fields: [empresaId], references: [id])
+  local               Local                 @relation(fields: [localId], references: [id])
+
+  @@unique([empresaId, code])
+  @@index([empresaId, localId])
+  @@map("ordenes_produccion")
+}
+
+model Empleado {
+  id            String          @id @default(uuid()) @db.Uuid
+  empresaId     String          @db.Uuid
+  localId       String          @db.Uuid
+  code          String
+  name          String
+  email         String?
+  phone         String?
+  position      String
+  department    String
+  salary        Decimal         @db.Decimal(15, 2)
+  hireDate      DateTime
+  active        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  asistencias   Asistencia[]
+  empresa       Empresa         @relation(fields: [empresaId], references: [id])
+  liquidaciones Liquidacion[]
+  horas         RegistroHoras[]
+  vacaciones    Vacacion[]
+
+  @@unique([empresaId, code])
+  @@index([empresaId, localId])
+  @@map("empleados")
+}
+
+model Liquidacion {
+  id          String    @id @default(uuid()) @db.Uuid
+  empresaId   String    @db.Uuid
+  empleadoId  String    @db.Uuid
+  periodo     String
+  sueldobruto Decimal   @db.Decimal(15, 2)
+  deducciones Decimal   @default(0) @db.Decimal(15, 2)
+  sueldoNeto  Decimal   @db.Decimal(15, 2)
+  estado      String    @default("BORRADOR")
+  fechaPago   DateTime?
+  notas       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  empleado    Empleado  @relation(fields: [empleadoId], references: [id])
+
+  @@index([empleadoId])
+  @@index([empresaId, periodo])
+  @@map("liquidaciones")
+}
+
+model Asistencia {
+  id          String    @id @default(uuid()) @db.Uuid
+  empresaId   String    @db.Uuid
+  empleadoId  String    @db.Uuid
+  fecha       DateTime  @db.Date
+  entrada     DateTime?
+  salida      DateTime?
+  ausente     Boolean   @default(false)
+  justificado Boolean   @default(false)
+  notas       String?
+  createdAt   DateTime  @default(now())
+  empleado    Empleado  @relation(fields: [empleadoId], references: [id])
+
+  @@unique([empleadoId, fecha])
+  @@index([empresaId, fecha])
+  @@map("asistencias")
+}
+
+model RegistroHoras {
+  id            String   @id @default(uuid()) @db.Uuid
+  empresaId     String   @db.Uuid
+  empleadoId    String   @db.Uuid
+  fecha         DateTime @db.Date
+  horasNormales Decimal  @default(0) @db.Decimal(5, 2)
+  horasExtra    Decimal  @default(0) @db.Decimal(5, 2)
+  descripcion   String?
+  createdAt     DateTime @default(now())
+  empleado      Empleado @relation(fields: [empleadoId], references: [id])
+
+  @@unique([empleadoId, fecha])
+  @@map("registro_horas")
+}
+
+model Vacacion {
+  id          String   @id @default(uuid()) @db.Uuid
+  empresaId   String   @db.Uuid
+  empleadoId  String   @db.Uuid
+  fechaDesde  DateTime @db.Date
+  fechaHasta  DateTime @db.Date
+  diasHabiles Int
+  estado      String   @default("PENDIENTE")
+  aprobadoPor String?
+  notas       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  empleado    Empleado @relation(fields: [empleadoId], references: [id])
+
+  @@index([empleadoId])
+  @@map("vacaciones")
+}
+
+model CuentaContable {
+  id            String           @id @default(uuid()) @db.Uuid
+  empresaId     String           @db.Uuid
+  code          String
+  nombre        String
+  tipo          TipoCuenta
+  naturaleza    NaturalezaCuenta
+  nivel         Int
+  cuentaPadreId String?          @db.Uuid
+  imputable     Boolean          @default(true)
+  activa        Boolean          @default(true)
+  saldo         Decimal          @default(0) @db.Decimal(15, 2)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  cuentaPadre   CuentaContable?  @relation("CuentaJerarquia", fields: [cuentaPadreId], references: [id])
+  subcuentas    CuentaContable[] @relation("CuentaJerarquia")
+  empresa       Empresa          @relation(fields: [empresaId], references: [id])
+  detalles      DetalleAsiento[]
+
+  @@unique([empresaId, code])
+  @@index([empresaId, tipo])
+  @@map("cuentas_contables")
+}
+
+model AsientoContable {
+  id           String           @id @default(uuid()) @db.Uuid
+  empresaId    String           @db.Uuid
+  localId      String           @db.Uuid
+  numero       Int
+  fecha        DateTime         @db.Date
+  descripcion  String
+  tipo         TipoAsiento      @default(MANUAL)
+  origen       OrigenAsiento    @default(MANUAL)
+  referenciaId String?
+  totalDebe    Decimal          @db.Decimal(15, 2)
+  totalHaber   Decimal          @db.Decimal(15, 2)
+  estado       EstadoAsiento    @default(BORRADOR)
+  creadoPor    String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  empresa      Empresa          @relation(fields: [empresaId], references: [id])
+  detalles     DetalleAsiento[]
+
+  @@unique([empresaId, numero])
+  @@index([empresaId, localId])
+  @@index([fecha])
+  @@map("asientos_contables")
+}
+
+model DetalleAsiento {
+  id          String          @id @default(uuid()) @db.Uuid
+  asientoId   String          @db.Uuid
+  cuentaId    String          @db.Uuid
+  debe        Decimal         @default(0) @db.Decimal(15, 2)
+  haber       Decimal         @default(0) @db.Decimal(15, 2)
+  descripcion String?
+  asiento     AsientoContable @relation(fields: [asientoId], references: [id], onDelete: Cascade)
+  cuenta      CuentaContable  @relation(fields: [cuentaId], references: [id])
+
+  @@map("detalles_asiento")
+}
+
+model CuentaPorCobrar {
+  id               String             @id @default(uuid()) @db.Uuid
+  empresaId        String             @db.Uuid
+  localId          String             @db.Uuid
+  clienteId        String             @db.Uuid
+  facturaId        String             @unique @db.Uuid
+  fechaEmision     DateTime
+  fechaVencimiento DateTime
+  montoTotal       Decimal            @db.Decimal(15, 2)
+  montoPagado      Decimal            @default(0) @db.Decimal(15, 2)
+  montoSaldo       Decimal            @db.Decimal(15, 2)
+  estado           EstadoCuentaCobrar @default(PENDIENTE)
+  diasVencido      Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  cliente          Cliente            @relation(fields: [clienteId], references: [id])
+  factura          Factura            @relation(fields: [facturaId], references: [id])
+  local            Local              @relation(fields: [localId], references: [id])
+
+  @@index([empresaId, localId])
+  @@index([clienteId])
+  @@index([estado])
+  @@map("cuentas_por_cobrar")
+}
+
+model CuentaPorPagar {
+  id               String            @id @default(uuid()) @db.Uuid
+  empresaId        String            @db.Uuid
+  localId          String            @db.Uuid
+  proveedorId      String            @db.Uuid
+  ordenCompraId    String            @unique @db.Uuid
+  fechaEmision     DateTime
+  fechaVencimiento DateTime
+  montoTotal       Decimal           @db.Decimal(15, 2)
+  montoPagado      Decimal           @default(0) @db.Decimal(15, 2)
+  montoSaldo       Decimal           @db.Decimal(15, 2)
+  estado           EstadoCuentaPagar @default(PENDIENTE)
+  diasVencido      Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  local            Local             @relation(fields: [localId], references: [id])
+  ordenCompra      OrdenCompra       @relation(fields: [ordenCompraId], references: [id])
+  proveedor        Proveedor         @relation(fields: [proveedorId], references: [id])
+
+  @@index([empresaId, localId])
+  @@index([proveedorId])
+  @@index([estado])
+  @@map("cuentas_por_pagar")
+}
+
+model Banco {
+  id        String           @id @default(uuid()) @db.Uuid
+  empresaId String           @db.Uuid
+  nombre    String
+  codigo    String?
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  empresa   Empresa          @relation(fields: [empresaId], references: [id])
+  cuentas   CuentaBancaria[]
+
+  @@map("bancos")
+}
+
+model CuentaBancaria {
+  id           String               @id @default(uuid()) @db.Uuid
+  empresaId    String               @db.Uuid
+  bancoId      String               @db.Uuid
+  localId      String               @db.Uuid
+  numeroCuenta String
+  tipoCuenta   String
+  moneda       String               @default("ARS")
+  saldo        Decimal              @default(0) @db.Decimal(15, 2)
+  active       Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  banco        Banco                @relation(fields: [bancoId], references: [id])
+  movimientos  MovimientoBancario[]
+
+  @@map("cuentas_bancarias")
+}
+
+model MovimientoBancario {
+  id               String         @id @default(uuid()) @db.Uuid
+  empresaId        String         @db.Uuid
+  cuentaBancariaId String         @db.Uuid
+  fecha            DateTime       @db.Date
+  tipo             String
+  concepto         String
+  monto            Decimal        @db.Decimal(15, 2)
+  referencia       String?
+  saldoParcial     Decimal        @db.Decimal(15, 2)
+  conciliado       Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  cuentaBancaria   CuentaBancaria @relation(fields: [cuentaBancariaId], references: [id])
+
+  @@index([cuentaBancariaId, fecha])
+  @@map("movimientos_bancarios")
+}
+
+model CajaLocal {
+  id           String           @id @default(uuid()) @db.Uuid
+  empresaId    String           @db.Uuid
+  localId      String           @db.Uuid
+  fecha        DateTime         @db.Date
+  saldoInicial Decimal          @db.Decimal(15, 2)
+  saldoFinal   Decimal?         @db.Decimal(15, 2)
+  abierta      Boolean          @default(true)
+  abrioPor     String
+  cerroPor     String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  local        Local            @relation(fields: [localId], references: [id])
+  movimientos  MovimientoCaja[]
+
+  @@unique([localId, fecha])
+  @@map("cajas_local")
+}
+
+model MovimientoCaja {
+  id            String    @id @default(uuid()) @db.Uuid
+  cajaId        String    @db.Uuid
+  tipo          String
+  concepto      String
+  monto         Decimal   @db.Decimal(15, 2)
+  referencia    String?
+  creadoPor     String
+  createdAt     DateTime  @default(now())
+  saldoAnterior Decimal   @default(0) @db.Decimal(15, 2)
+  saldoNuevo    Decimal   @default(0) @db.Decimal(15, 2)
+  caja          CajaLocal @relation(fields: [cajaId], references: [id])
+
+  @@index([cajaId])
+  @@map("movimientos_caja")
+}
+
+model Cheque {
+  id           String       @id @default(uuid()) @db.Uuid
+  empresaId    String       @db.Uuid
+  localId      String       @db.Uuid
+  numero       String
+  bancoNombre  String
+  tipo         TipoCheque
+  emisor       String?
+  cuitEmitente String?
+  importe      Decimal      @db.Decimal(15, 2)
+  fechaEmision DateTime     @db.Date
+  fechaPago    DateTime     @db.Date
+  estado       EstadoCheque @default(EN_CARTERA)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  empresa      Empresa      @relation(fields: [empresaId], references: [id])
+  local        Local        @relation(fields: [localId], references: [id])
+
+  @@index([empresaId, localId])
+  @@index([estado])
+  @@map("cheques")
+}
+
+model Retencion {
+  id              String        @id @default(uuid()) @db.Uuid
+  empresaId       String        @db.Uuid
+  localId         String        @db.Uuid
+  tipo            TipoRetencion
+  numero          String
+  fecha           DateTime      @db.Date
+  proveedorNombre String?
+  clienteNombre   String?
+  importe         Decimal       @db.Decimal(15, 2)
+  alicuota        Decimal       @db.Decimal(5, 2)
+  baseImponible   Decimal       @db.Decimal(15, 2)
+  descripcion     String?
+  createdAt       DateTime      @default(now())
+  empresa         Empresa       @relation(fields: [empresaId], references: [id])
+  local           Local         @relation(fields: [localId], references: [id])
+
+  @@index([empresaId, localId])
+  @@map("retenciones")
+}
+
+model ConvenioMultilateral {
+  id              String   @id @default(uuid()) @db.Uuid
+  empresaId       String   @db.Uuid
+  periodo         String
+  ingresosTotales Decimal  @db.Decimal(15, 2)
+  totalImpuesto   Decimal  @db.Decimal(15, 2)
+  distribucion    Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  empresa         Empresa  @relation(fields: [empresaId], references: [id])
+
+  @@unique([empresaId, periodo])
+  @@map("convenios_multilateral")
+}
+
+model AuditoriaLog {
+  id         String        @id @default(uuid()) @db.Uuid
+  empresaId  String        @db.Uuid
+  usuarioId  String?       @db.Uuid
+  userName   String
+  userRole   String
+  tipo       TipoAuditoria
+  modulo     String
+  accion     String
+  tabla      String?
+  registroId String?
+  detalles   String?
+  ipAddress  String?
+  createdAt  DateTime      @default(now())
+  empresa    Empresa       @relation(fields: [empresaId], references: [id])
+  usuario    Usuario?      @relation(fields: [usuarioId], references: [id])
+
+  @@index([empresaId, modulo])
+  @@index([usuarioId])
+  @@index([createdAt])
+  @@map("auditoria_logs")
+}
+
 enum UserRole {
-  Super
   Administrador
   Gerente
   Vendedor
@@ -16,6 +1033,7 @@ enum UserRole {
   RRHH
   Produccion
   SoloLectura
+  Super
 }
 
 enum EstadoPresupuesto {
@@ -177,1071 +1195,4 @@ enum EstadoCuentaPagar {
   PARCIAL
   PAGADA
   VENCIDA
-}
-
-model Empresa {
-  id        String   @id @default(uuid()) @db.Uuid
-  code      String   @unique
-  name      String
-  taxId     String   @unique
-  address   String?
-  city      String?
-  state     String?
-  phone     String?
-  email     String?
-  logo      String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  locales               Local[]
-  usuarios              Usuario[]
-  clientes              Cliente[]
-  proveedores           Proveedor[]
-  productos             Producto[]
-  empleados             Empleado[]
-  cuentasContables      CuentaContable[]
-  asientosContables     AsientoContable[]
-  auditoriaLogs         AuditoriaLog[]
-  ordenesProduccion     OrdenProduccion[]
-  cheques               Cheque[]
-  retenciones           Retencion[]
-  bancos                Banco[]
-  conveniosMultilateral ConvenioMultilateral[]
-
-  @@map("empresas")
-}
-
-model Local {
-  id        String   @id @default(uuid()) @db.Uuid
-  empresaId String   @db.Uuid
-  code      String
-  name      String
-  address   String?
-  city      String?
-  state     String?
-  phone     String?
-  email     String?
-  manager   String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  empresa           Empresa               @relation(fields: [empresaId], references: [id])
-  usuarios          Usuario[]
-  clientes          Cliente[]
-  proveedores       Proveedor[]
-  stock             Stock[]
-  movimientosStock  MovimientoStock[]
-  presupuestos      Presupuesto[]
-  pedidos           PedidoVenta[]
-  facturas          Factura[]
-  ordenesCompra     OrdenCompra[]
-  requerimientos    RequerimientoCompra[]
-  recepciones       RecepcionCompra[]
-  depositos         Deposito[]
-  seguimientos      SeguimientoCliente[]
-  ordenesProduccion OrdenProduccion[]
-  cajasLocales      CajaLocal[]
-  cheques           Cheque[]
-  retenciones       Retencion[]
-  cuentasPorCobrar  CuentaPorCobrar[]
-  cuentasPorPagar   CuentaPorPagar[]
-
-  @@unique([empresaId, code])
-  @@map("locales")
-}
-
-model Usuario {
-  id        String   @id @default(uuid()) @db.Uuid
-  empresaId String   @db.Uuid
-  localId   String?  @db.Uuid
-  nombre    String
-  email     String   @unique
-  password  String
-  rol       UserRole
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  empresa       Empresa        @relation(fields: [empresaId], references: [id])
-  local         Local?         @relation(fields: [localId], references: [id])
-  auditoriaLogs AuditoriaLog[]
-
-  @@map("usuarios")
-}
-
-model Cliente {
-  id          String   @id @default(uuid()) @db.Uuid
-  empresaId   String   @db.Uuid
-  localId     String   @db.Uuid
-  code        String
-  name        String
-  taxId       String?
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  state       String?
-  creditLimit Decimal  @default(0) @db.Decimal(15, 2)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  empresa          Empresa              @relation(fields: [empresaId], references: [id])
-  local            Local                @relation(fields: [localId], references: [id])
-  presupuestos     Presupuesto[]
-  pedidos          PedidoVenta[]
-  facturas         Factura[]
-  seguimientos     SeguimientoCliente[]
-  cuentasPorCobrar CuentaPorCobrar[]
-
-  @@unique([empresaId, code])
-  @@index([empresaId, localId])
-  @@index([empresaId, active])
-  @@map("clientes")
-}
-
-model SeguimientoCliente {
-  id                 String          @id @default(uuid()) @db.Uuid
-  empresaId          String          @db.Uuid
-  localId            String          @db.Uuid
-  clienteId          String          @db.Uuid
-  tipo               TipoInteraccion
-  fecha              DateTime
-  asunto             String
-  descripcion        String          @db.Text
-  vendedor           String
-  proximoSeguimiento DateTime?
-  completado         Boolean         @default(false)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-
-  local   Local   @relation(fields: [localId], references: [id])
-  cliente Cliente @relation(fields: [clienteId], references: [id])
-
-  @@index([clienteId])
-  @@index([localId, completado])
-  @@map("seguimientos_cliente")
-}
-
-model Proveedor {
-  id           String   @id @default(uuid()) @db.Uuid
-  empresaId    String   @db.Uuid
-  localId      String   @db.Uuid
-  code         String
-  name         String
-  taxId        String?
-  email        String?
-  phone        String?
-  address      String?
-  city         String?
-  state        String?
-  paymentTerms Int      @default(30)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  empresa         Empresa              @relation(fields: [empresaId], references: [id])
-  local           Local                @relation(fields: [localId], references: [id])
-  ordenesCompra   OrdenCompra[]
-  cuentasPorPagar CuentaPorPagar[]
-  materiales      MaterialProduccion[]
-
-  @@unique([empresaId, code])
-  @@index([empresaId, localId])
-  @@map("proveedores")
-}
-
-model Categoria {
-  id          String   @id @default(uuid()) @db.Uuid
-  empresaId   String   @db.Uuid
-  name        String
-  description String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  productos Producto[]
-
-  @@unique([empresaId, name])
-  @@map("categorias")
-}
-
-model Producto {
-  id          String       @id @default(uuid()) @db.Uuid
-  empresaId   String       @db.Uuid
-  code        String
-  name        String
-  description String?
-  categoriaId String?      @db.Uuid
-  tipo        TipoProducto @default(TERMINADO)
-  unit        String       @default("UNI")
-  cost        Decimal      @default(0) @db.Decimal(15, 2)
-  price       Decimal      @default(0) @db.Decimal(15, 2)
-  minStock    Int          @default(0)
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  empresa          Empresa           @relation(fields: [empresaId], references: [id])
-  categoria        Categoria?        @relation(fields: [categoriaId], references: [id])
-  stock            Stock[]
-  movimientos      MovimientoStock[]
-  itemsPresupuesto ItemPresupuesto[]
-  itemsPedido      ItemPedido[]
-  itemsOrdenCompra ItemOrdenCompra[]
-  boms             BOM[]
-
-  @@unique([empresaId, code])
-  @@index([empresaId, active])
-  @@map("productos")
-}
-
-model Deposito {
-  id        String   @id @default(uuid()) @db.Uuid
-  empresaId String   @db.Uuid
-  localId   String   @db.Uuid
-  code      String
-  name      String
-  address   String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  local Local   @relation(fields: [localId], references: [id])
-  stock Stock[]
-
-  @@unique([empresaId, code])
-  @@map("depositos")
-}
-
-model Stock {
-  id         String   @id @default(uuid()) @db.Uuid
-  empresaId  String   @db.Uuid
-  localId    String   @db.Uuid
-  depositoId String?  @db.Uuid
-  productoId String   @db.Uuid
-  cantidad   Decimal  @default(0) @db.Decimal(15, 3)
-  updatedAt  DateTime @updatedAt
-
-  local    Local     @relation(fields: [localId], references: [id])
-  deposito Deposito? @relation(fields: [depositoId], references: [id])
-  producto Producto  @relation(fields: [productoId], references: [id])
-
-  @@unique([localId, productoId, depositoId])
-  @@index([empresaId, localId])
-  @@map("stock")
-}
-
-model MovimientoStock {
-  id             String              @id @default(uuid()) @db.Uuid
-  empresaId      String              @db.Uuid
-  localId        String              @db.Uuid
-  localDestinoId String?             @db.Uuid
-  productoId     String              @db.Uuid
-  tipo           TipoMovimientoStock
-  cantidad       Decimal             @db.Decimal(15, 3)
-  referencia     String?
-  referenciaId   String?
-  observaciones  String?
-  creadoPor      String
-  fecha          DateTime            @default(now())
-  createdAt      DateTime            @default(now())
-
-  local    Local    @relation(fields: [localId], references: [id])
-  producto Producto @relation(fields: [productoId], references: [id])
-
-  @@index([empresaId, localId])
-  @@index([productoId])
-  @@index([fecha])
-  @@map("movimientos_stock")
-}
-
-model Presupuesto {
-  id               String            @id @default(uuid()) @db.Uuid
-  empresaId        String            @db.Uuid
-  localId          String            @db.Uuid
-  numero           String
-  clienteId        String            @db.Uuid
-  fecha            DateTime
-  fechaVencimiento DateTime
-  subtotal         Decimal           @db.Decimal(15, 2)
-  descuento        Decimal           @default(0) @db.Decimal(15, 2)
-  impuestos        Decimal           @default(0) @db.Decimal(15, 2)
-  total            Decimal           @db.Decimal(15, 2)
-  estado           EstadoPresupuesto @default(BORRADOR)
-  notas            String?           @db.Text
-  vendedor         String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-
-  local   Local             @relation(fields: [localId], references: [id])
-  cliente Cliente           @relation(fields: [clienteId], references: [id])
-  items   ItemPresupuesto[]
-  pedido  PedidoVenta?
-
-  @@unique([empresaId, numero])
-  @@index([empresaId, localId])
-  @@index([clienteId])
-  @@index([estado])
-  @@map("presupuestos")
-}
-
-model ItemPresupuesto {
-  id             String  @id @default(uuid()) @db.Uuid
-  presupuestoId  String  @db.Uuid
-  productoId     String  @db.Uuid
-  productoNombre String
-  cantidad       Decimal @db.Decimal(15, 3)
-  precioUnitario Decimal @db.Decimal(15, 2)
-  descuento      Decimal @default(0) @db.Decimal(5, 2)
-  subtotal       Decimal @db.Decimal(15, 2)
-
-  presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
-  producto    Producto    @relation(fields: [productoId], references: [id])
-
-  @@map("items_presupuesto")
-}
-
-model PedidoVenta {
-  id                   String       @id @default(uuid()) @db.Uuid
-  empresaId            String       @db.Uuid
-  localId              String       @db.Uuid
-  numero               String
-  presupuestoId        String?      @unique @db.Uuid
-  clienteId            String       @db.Uuid
-  fecha                DateTime
-  fechaEntregaEstimada DateTime
-  fechaEntregaReal     DateTime?
-  subtotal             Decimal      @db.Decimal(15, 2)
-  descuento            Decimal      @default(0) @db.Decimal(15, 2)
-  impuestos            Decimal      @default(0) @db.Decimal(15, 2)
-  total                Decimal      @db.Decimal(15, 2)
-  estado               EstadoPedido @default(PENDIENTE)
-  notas                String?      @db.Text
-  vendedor             String
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
-
-  local       Local        @relation(fields: [localId], references: [id])
-  cliente     Cliente      @relation(fields: [clienteId], references: [id])
-  presupuesto Presupuesto? @relation(fields: [presupuestoId], references: [id])
-  items       ItemPedido[]
-  factura     Factura?
-
-  @@unique([empresaId, numero])
-  @@index([empresaId, localId])
-  @@index([clienteId])
-  @@index([estado])
-  @@map("pedidos_venta")
-}
-
-model ItemPedido {
-  id                String  @id @default(uuid()) @db.Uuid
-  pedidoId          String  @db.Uuid
-  productoId        String  @db.Uuid
-  productoNombre    String
-  cantidad          Decimal @db.Decimal(15, 3)
-  cantidadEntregada Decimal @default(0) @db.Decimal(15, 3)
-  precioUnitario    Decimal @db.Decimal(15, 2)
-  descuento         Decimal @default(0) @db.Decimal(5, 2)
-  subtotal          Decimal @db.Decimal(15, 2)
-
-  pedido   PedidoVenta @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  producto Producto    @relation(fields: [productoId], references: [id])
-
-  @@map("items_pedido")
-}
-
-model Factura {
-  id               String        @id @default(uuid()) @db.Uuid
-  empresaId        String        @db.Uuid
-  localId          String        @db.Uuid
-  numero           String
-  pedidoId         String?       @unique @db.Uuid
-  clienteId        String        @db.Uuid
-  fecha            DateTime
-  fechaVencimiento DateTime
-  subtotal         Decimal       @db.Decimal(15, 2)
-  descuento        Decimal       @default(0) @db.Decimal(15, 2)
-  impuestos        Decimal       @default(0) @db.Decimal(15, 2)
-  total            Decimal       @db.Decimal(15, 2)
-  estado           EstadoFactura @default(PENDIENTE)
-  notas            String?       @db.Text
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  local           Local            @relation(fields: [localId], references: [id])
-  cliente         Cliente          @relation(fields: [clienteId], references: [id])
-  pedido          PedidoVenta?     @relation(fields: [pedidoId], references: [id])
-  cobranzas       Cobranza[]
-  cuentaPorCobrar CuentaPorCobrar?
-
-  @@unique([empresaId, numero])
-  @@index([empresaId, localId])
-  @@index([clienteId])
-  @@index([estado])
-  @@map("facturas")
-}
-
-model Cobranza {
-  id         String   @id @default(uuid()) @db.Uuid
-  empresaId  String   @db.Uuid
-  localId    String   @db.Uuid
-  facturaId  String   @db.Uuid
-  fecha      DateTime
-  monto      Decimal  @db.Decimal(15, 2)
-  metodoPago String
-  referencia String?
-  notas      String?
-  creadoPor  String
-  createdAt  DateTime @default(now())
-
-  factura Factura @relation(fields: [facturaId], references: [id])
-
-  @@index([facturaId])
-  @@map("cobranzas")
-}
-
-model RequerimientoCompra {
-  id                String              @id @default(uuid()) @db.Uuid
-  empresaId         String              @db.Uuid
-  localId           String              @db.Uuid
-  numero            String
-  solicitante       String
-  departamento      String
-  fecha             DateTime
-  fechaNecesidad    DateTime
-  justificacion     String              @db.Text
-  estado            EstadoRequerimiento @default(PENDIENTE)
-  autorizadoPor     String?
-  fechaAutorizacion DateTime?
-  proveedorSugerido String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-
-  local       Local               @relation(fields: [localId], references: [id])
-  items       ItemRequerimiento[]
-  ordenCompra OrdenCompra?
-
-  @@unique([empresaId, numero])
-  @@index([empresaId, localId])
-  @@map("requerimientos_compra")
-}
-
-model ItemRequerimiento {
-  id              String   @id @default(uuid()) @db.Uuid
-  requerimientoId String   @db.Uuid
-  productoId      String?  @db.Uuid
-  descripcion     String
-  cantidad        Decimal  @db.Decimal(15, 3)
-  unidad          String
-  precioEstimado  Decimal? @db.Decimal(15, 2)
-  observaciones   String?
-
-  requerimiento RequerimientoCompra @relation(fields: [requerimientoId], references: [id], onDelete: Cascade)
-
-  @@map("items_requerimiento")
-}
-
-model OrdenCompra {
-  id                   String            @id @default(uuid()) @db.Uuid
-  empresaId            String            @db.Uuid
-  localId              String            @db.Uuid
-  numero               String
-  proveedorId          String            @db.Uuid
-  requerimientoId      String?           @unique @db.Uuid
-  fecha                DateTime
-  fechaEntregaEstimada DateTime
-  subtotal             Decimal           @db.Decimal(15, 2)
-  impuestos            Decimal           @default(0) @db.Decimal(15, 2)
-  total                Decimal           @db.Decimal(15, 2)
-  estado               EstadoOrdenCompra @default(BORRADOR)
-  condicionesPago      String?
-  observaciones        String?           @db.Text
-  responsable          String
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-
-  local          Local                @relation(fields: [localId], references: [id])
-  proveedor      Proveedor            @relation(fields: [proveedorId], references: [id])
-  requerimiento  RequerimientoCompra? @relation(fields: [requerimientoId], references: [id])
-  items          ItemOrdenCompra[]
-  recepciones    RecepcionCompra[]
-  cuentaPorPagar CuentaPorPagar?
-
-  @@unique([empresaId, numero])
-  @@index([empresaId, localId])
-  @@index([proveedorId])
-  @@map("ordenes_compra")
-}
-
-model ItemOrdenCompra {
-  id               String  @id @default(uuid()) @db.Uuid
-  ordenCompraId    String  @db.Uuid
-  productoId       String? @db.Uuid
-  descripcion      String
-  cantidad         Decimal @db.Decimal(15, 3)
-  cantidadRecibida Decimal @default(0) @db.Decimal(15, 3)
-  unidad           String
-  precioUnitario   Decimal @db.Decimal(15, 2)
-  descuento        Decimal @default(0) @db.Decimal(5, 2)
-  subtotal         Decimal @db.Decimal(15, 2)
-
-  ordenCompra OrdenCompra @relation(fields: [ordenCompraId], references: [id], onDelete: Cascade)
-  producto    Producto?   @relation(fields: [productoId], references: [id])
-
-  @@map("items_orden_compra")
-}
-
-model RecepcionCompra {
-  id             String   @id @default(uuid()) @db.Uuid
-  empresaId      String   @db.Uuid
-  localId        String   @db.Uuid
-  numero         String
-  ordenCompraId  String   @db.Uuid
-  fechaRecepcion DateTime
-  observaciones  String?  @db.Text
-  recibidoPor    String
-  conformidad    Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  local       Local           @relation(fields: [localId], references: [id])
-  ordenCompra OrdenCompra     @relation(fields: [ordenCompraId], references: [id])
-  items       ItemRecepcion[]
-
-  @@unique([empresaId, numero])
-  @@index([ordenCompraId])
-  @@map("recepciones_compra")
-}
-
-model ItemRecepcion {
-  id                String  @id @default(uuid()) @db.Uuid
-  recepcionId       String  @db.Uuid
-  itemOrdenCompraId String  @db.Uuid
-  descripcion       String
-  cantidadOrdenada  Decimal @db.Decimal(15, 3)
-  cantidadRecibida  Decimal @db.Decimal(15, 3)
-  cantidadAceptada  Decimal @db.Decimal(15, 3)
-  cantidadRechazada Decimal @default(0) @db.Decimal(15, 3)
-  motivoRechazo     String?
-  observaciones     String?
-
-  recepcion RecepcionCompra @relation(fields: [recepcionId], references: [id], onDelete: Cascade)
-
-  @@map("items_recepcion")
-}
-
-model PagoProveedor {
-  id             String          @id @default(uuid()) @db.Uuid
-  empresaId      String          @db.Uuid
-  localId        String          @db.Uuid
-  proveedorId    String          @db.Uuid
-  cuentaPagarId  String?         @db.Uuid
-  fecha          DateTime
-  monto          Decimal         @db.Decimal(15, 2)
-  metodoPago     String
-  referencia     String?
-  notas          String?
-  creadoPor      String
-  createdAt      DateTime        @default(now())
-
-  cuentaPagar CuentaPorPagar? @relation(fields: [cuentaPagarId], references: [id])
-
-  @@index([proveedorId])
-  @@index([empresaId, localId])
-  @@index([cuentaPagarId])
-  @@map("pagos_proveedor")
-}
-
-model MaterialProduccion {
-  id            String       @id @default(uuid()) @db.Uuid
-  empresaId     String       @db.Uuid
-  localId       String       @db.Uuid
-  code          String
-  nombre        String
-  tipo          TipoProducto
-  unidad        String
-  stockActual   Decimal      @default(0) @db.Decimal(15, 3)
-  stockMinimo   Decimal      @default(0) @db.Decimal(15, 3)
-  stockMaximo   Decimal      @default(0) @db.Decimal(15, 3)
-  costoUnitario Decimal      @default(0) @db.Decimal(15, 2)
-  proveedorId   String?      @db.Uuid
-  active        Boolean      @default(true)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  proveedor Proveedor? @relation(fields: [proveedorId], references: [id])
-  bomItems  BOMItem[]
-
-  @@unique([empresaId, code])
-  @@map("materiales_produccion")
-}
-
-model BOM {
-  id             String   @id @default(uuid()) @db.Uuid
-  empresaId      String   @db.Uuid
-  localId        String   @db.Uuid
-  code           String
-  productoId     String   @db.Uuid
-  productoNombre String
-  cantidad       Decimal  @db.Decimal(15, 3)
-  unidad         String
-  costoTotal     Decimal  @default(0) @db.Decimal(15, 2)
-  version        Int      @default(1)
-  activo         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  producto          Producto          @relation(fields: [productoId], references: [id])
-  materiales        BOMItem[]
-  ordenesProduccion OrdenProduccion[]
-
-  @@unique([empresaId, code])
-  @@map("bom")
-}
-
-model BOMItem {
-  id             String  @id @default(uuid()) @db.Uuid
-  bomId          String  @db.Uuid
-  materialId     String  @db.Uuid
-  materialNombre String
-  materialCode   String
-  cantidad       Decimal @db.Decimal(15, 3)
-  unidad         String
-  costoUnitario  Decimal @db.Decimal(15, 2)
-  costoTotal     Decimal @db.Decimal(15, 2)
-
-  bom      BOM                @relation(fields: [bomId], references: [id], onDelete: Cascade)
-  material MaterialProduccion @relation(fields: [materialId], references: [id])
-
-  @@map("bom_items")
-}
-
-model OrdenProduccion {
-  id                  String                @id @default(uuid()) @db.Uuid
-  empresaId           String                @db.Uuid
-  localId             String                @db.Uuid
-  code                String
-  bomId               String                @db.Uuid
-  productoId          String                @db.Uuid
-  productoNombre      String
-  cantidadPlanificada Decimal               @db.Decimal(15, 3)
-  cantidadProducida   Decimal               @default(0) @db.Decimal(15, 3)
-  unidad              String
-  estado              EstadoOrdenProduccion @default(PLANIFICADA)
-  fechaInicio         DateTime
-  fechaFinPlanificada DateTime
-  fechaFinReal        DateTime?
-  operador            String
-  notas               String?               @db.Text
-  costoMateriales     Decimal               @default(0) @db.Decimal(15, 2)
-  costoManoObra       Decimal               @default(0) @db.Decimal(15, 2)
-  costoTotal          Decimal               @default(0) @db.Decimal(15, 2)
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-
-  local   Local   @relation(fields: [localId], references: [id])
-  empresa Empresa @relation(fields: [empresaId], references: [id])
-  bom     BOM     @relation(fields: [bomId], references: [id])
-
-  @@unique([empresaId, code])
-  @@index([empresaId, localId])
-  @@map("ordenes_produccion")
-}
-
-model Empleado {
-  id         String   @id @default(uuid()) @db.Uuid
-  empresaId  String   @db.Uuid
-  localId    String   @db.Uuid
-  code       String
-  name       String
-  email      String?
-  phone      String?
-  position   String
-  department String
-  salary     Decimal  @db.Decimal(15, 2)
-  hireDate   DateTime
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  empresa       Empresa         @relation(fields: [empresaId], references: [id])
-  liquidaciones Liquidacion[]
-  asistencias   Asistencia[]
-  horas         RegistroHoras[]
-  vacaciones    Vacacion[]
-
-  @@unique([empresaId, code])
-  @@index([empresaId, localId])
-  @@map("empleados")
-}
-
-model Liquidacion {
-  id          String    @id @default(uuid()) @db.Uuid
-  empresaId   String    @db.Uuid
-  empleadoId  String    @db.Uuid
-  periodo     String
-  sueldobruto Decimal   @db.Decimal(15, 2)
-  deducciones Decimal   @default(0) @db.Decimal(15, 2)
-  sueldoNeto  Decimal   @db.Decimal(15, 2)
-  estado      String    @default("BORRADOR")
-  fechaPago   DateTime?
-  notas       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  empleado Empleado @relation(fields: [empleadoId], references: [id])
-
-  @@index([empleadoId])
-  @@index([empresaId, periodo])
-  @@map("liquidaciones")
-}
-
-model Asistencia {
-  id          String    @id @default(uuid()) @db.Uuid
-  empresaId   String    @db.Uuid
-  empleadoId  String    @db.Uuid
-  fecha       DateTime  @db.Date
-  entrada     DateTime?
-  salida      DateTime?
-  ausente     Boolean   @default(false)
-  justificado Boolean   @default(false)
-  notas       String?
-  createdAt   DateTime  @default(now())
-
-  empleado Empleado @relation(fields: [empleadoId], references: [id])
-
-  @@unique([empleadoId, fecha])
-  @@index([empresaId, fecha])
-  @@map("asistencias")
-}
-
-model RegistroHoras {
-  id            String   @id @default(uuid()) @db.Uuid
-  empresaId     String   @db.Uuid
-  empleadoId    String   @db.Uuid
-  fecha         DateTime @db.Date
-  horasNormales Decimal  @default(0) @db.Decimal(5, 2)
-  horasExtra    Decimal  @default(0) @db.Decimal(5, 2)
-  descripcion   String?
-  createdAt     DateTime @default(now())
-
-  empleado Empleado @relation(fields: [empleadoId], references: [id])
-
-  @@unique([empleadoId, fecha])
-  @@map("registro_horas")
-}
-
-model Vacacion {
-  id          String   @id @default(uuid()) @db.Uuid
-  empresaId   String   @db.Uuid
-  empleadoId  String   @db.Uuid
-  fechaDesde  DateTime @db.Date
-  fechaHasta  DateTime @db.Date
-  diasHabiles Int
-  estado      String   @default("PENDIENTE")
-  aprobadoPor String?
-  notas       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  empleado Empleado @relation(fields: [empleadoId], references: [id])
-
-  @@index([empleadoId])
-  @@map("vacaciones")
-}
-
-model CuentaContable {
-  id            String           @id @default(uuid()) @db.Uuid
-  empresaId     String           @db.Uuid
-  code          String
-  nombre        String
-  tipo          TipoCuenta
-  naturaleza    NaturalezaCuenta
-  nivel         Int
-  cuentaPadreId String?          @db.Uuid
-  imputable     Boolean          @default(true)
-  activa        Boolean          @default(true)
-  saldo         Decimal          @default(0) @db.Decimal(15, 2)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-
-  empresa     Empresa          @relation(fields: [empresaId], references: [id])
-  cuentaPadre CuentaContable?  @relation("CuentaJerarquia", fields: [cuentaPadreId], references: [id])
-  subcuentas  CuentaContable[] @relation("CuentaJerarquia")
-  detalles    DetalleAsiento[]
-
-  @@unique([empresaId, code])
-  @@index([empresaId, tipo])
-  @@map("cuentas_contables")
-}
-
-model AsientoContable {
-  id           String        @id @default(uuid()) @db.Uuid
-  empresaId    String        @db.Uuid
-  localId      String        @db.Uuid
-  numero       Int
-  fecha        DateTime      @db.Date
-  descripcion  String
-  tipo         TipoAsiento   @default(MANUAL)
-  origen       OrigenAsiento @default(MANUAL)
-  referenciaId String?
-  totalDebe    Decimal       @db.Decimal(15, 2)
-  totalHaber   Decimal       @db.Decimal(15, 2)
-  estado       EstadoAsiento @default(BORRADOR)
-  creadoPor    String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  empresa  Empresa          @relation(fields: [empresaId], references: [id])
-  detalles DetalleAsiento[]
-
-  @@unique([empresaId, numero])
-  @@index([empresaId, localId])
-  @@index([fecha])
-  @@map("asientos_contables")
-}
-
-model DetalleAsiento {
-  id          String  @id @default(uuid()) @db.Uuid
-  asientoId   String  @db.Uuid
-  cuentaId    String  @db.Uuid
-  debe        Decimal @default(0) @db.Decimal(15, 2)
-  haber       Decimal @default(0) @db.Decimal(15, 2)
-  descripcion String?
-
-  asiento AsientoContable @relation(fields: [asientoId], references: [id], onDelete: Cascade)
-  cuenta  CuentaContable  @relation(fields: [cuentaId], references: [id])
-
-  @@map("detalles_asiento")
-}
-
-model CuentaPorCobrar {
-  id               String             @id @default(uuid()) @db.Uuid
-  empresaId        String             @db.Uuid
-  localId          String             @db.Uuid
-  clienteId        String             @db.Uuid
-  facturaId        String             @unique @db.Uuid
-  fechaEmision     DateTime
-  fechaVencimiento DateTime
-  montoTotal       Decimal            @db.Decimal(15, 2)
-  montoPagado      Decimal            @default(0) @db.Decimal(15, 2)
-  montoSaldo       Decimal            @db.Decimal(15, 2)
-  estado           EstadoCuentaCobrar @default(PENDIENTE)
-  diasVencido      Int                @default(0)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-
-  local   Local   @relation(fields: [localId], references: [id])
-  cliente Cliente @relation(fields: [clienteId], references: [id])
-  factura Factura @relation(fields: [facturaId], references: [id])
-
-  @@index([empresaId, localId])
-  @@index([clienteId])
-  @@index([estado])
-  @@map("cuentas_por_cobrar")
-}
-
-model CuentaPorPagar {
-  id               String            @id @default(uuid()) @db.Uuid
-  empresaId        String            @db.Uuid
-  localId          String            @db.Uuid
-  proveedorId      String            @db.Uuid
-  ordenCompraId    String            @unique @db.Uuid
-  fechaEmision     DateTime
-  fechaVencimiento DateTime
-  montoTotal       Decimal           @db.Decimal(15, 2)
-  montoPagado      Decimal           @default(0) @db.Decimal(15, 2)
-  montoSaldo       Decimal           @db.Decimal(15, 2)
-  estado           EstadoCuentaPagar @default(PENDIENTE)
-  diasVencido      Int               @default(0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-
-  local        Local            @relation(fields: [localId], references: [id])
-  proveedor    Proveedor        @relation(fields: [proveedorId], references: [id])
-  ordenCompra  OrdenCompra      @relation(fields: [ordenCompraId], references: [id])
-  pagos        PagoProveedor[]
-
-  @@index([empresaId, localId])
-  @@index([proveedorId])
-  @@index([estado])
-  @@map("cuentas_por_pagar")
-}
-
-model Banco {
-  id        String   @id @default(uuid()) @db.Uuid
-  empresaId String   @db.Uuid
-  nombre    String
-  codigo    String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  empresa Empresa          @relation(fields: [empresaId], references: [id])
-  cuentas CuentaBancaria[]
-
-  @@map("bancos")
-}
-
-model CuentaBancaria {
-  id           String   @id @default(uuid()) @db.Uuid
-  empresaId    String   @db.Uuid
-  bancoId      String   @db.Uuid
-  localId      String   @db.Uuid
-  numeroCuenta String
-  tipoCuenta   String
-  moneda       String   @default("ARS")
-  saldo        Decimal  @default(0) @db.Decimal(15, 2)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  banco       Banco                @relation(fields: [bancoId], references: [id])
-  movimientos MovimientoBancario[]
-
-  @@map("cuentas_bancarias")
-}
-
-model MovimientoBancario {
-  id               String   @id @default(uuid()) @db.Uuid
-  empresaId        String   @db.Uuid
-  cuentaBancariaId String   @db.Uuid
-  fecha            DateTime @db.Date
-  tipo             String
-  concepto         String
-  monto            Decimal  @db.Decimal(15, 2)
-  referencia       String?
-  saldoParcial     Decimal  @db.Decimal(15, 2)
-  conciliado       Boolean  @default(false)
-  createdAt        DateTime @default(now())
-
-  cuentaBancaria CuentaBancaria @relation(fields: [cuentaBancariaId], references: [id])
-
-  @@index([cuentaBancariaId, fecha])
-  @@map("movimientos_bancarios")
-}
-
-model CajaLocal {
-  id           String   @id @default(uuid()) @db.Uuid
-  empresaId    String   @db.Uuid
-  localId      String   @db.Uuid
-  fecha        DateTime @db.Date
-  saldoInicial Decimal  @db.Decimal(15, 2)
-  saldoFinal   Decimal? @db.Decimal(15, 2)
-  abierta      Boolean  @default(true)
-  abrioPor     String
-  cerroPor     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  local       Local            @relation(fields: [localId], references: [id])
-  movimientos MovimientoCaja[]
-
-  @@unique([localId, fecha])
-  @@map("cajas_local")
-}
-
-model MovimientoCaja {
-  id         String   @id @default(uuid()) @db.Uuid
-  cajaId     String   @db.Uuid
-  tipo       String
-  concepto   String
-  monto      Decimal  @db.Decimal(15, 2)
-  referencia String?
-  creadoPor  String
-  createdAt  DateTime @default(now())
-
-  caja CajaLocal @relation(fields: [cajaId], references: [id])
-
-  @@index([cajaId])
-  @@map("movimientos_caja")
-}
-
-model Cheque {
-  id           String       @id @default(uuid()) @db.Uuid
-  empresaId    String       @db.Uuid
-  localId      String       @db.Uuid
-  numero       String
-  bancoNombre  String
-  tipo         TipoCheque
-  emisor       String?
-  cuitEmitente String?
-  importe      Decimal      @db.Decimal(15, 2)
-  fechaEmision DateTime     @db.Date
-  fechaPago    DateTime     @db.Date
-  estado       EstadoCheque @default(EN_CARTERA)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  empresa Empresa @relation(fields: [empresaId], references: [id])
-  local   Local   @relation(fields: [localId], references: [id])
-
-  @@index([empresaId, localId])
-  @@index([estado])
-  @@map("cheques")
-}
-
-model Retencion {
-  id              String        @id @default(uuid()) @db.Uuid
-  empresaId       String        @db.Uuid
-  localId         String        @db.Uuid
-  tipo            TipoRetencion
-  numero          String
-  fecha           DateTime      @db.Date
-  proveedorNombre String?
-  clienteNombre   String?
-  importe         Decimal       @db.Decimal(15, 2)
-  alicuota        Decimal       @db.Decimal(5, 2)
-  baseImponible   Decimal       @db.Decimal(15, 2)
-  descripcion     String?
-  createdAt       DateTime      @default(now())
-
-  empresa Empresa @relation(fields: [empresaId], references: [id])
-  local   Local   @relation(fields: [localId], references: [id])
-
-  @@index([empresaId, localId])
-  @@map("retenciones")
-}
-
-model ConvenioMultilateral {
-  id              String   @id @default(uuid()) @db.Uuid
-  empresaId       String   @db.Uuid
-  periodo         String
-  ingresosTotales Decimal  @db.Decimal(15, 2)
-  totalImpuesto   Decimal  @db.Decimal(15, 2)
-  distribucion    Json
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  empresa Empresa @relation(fields: [empresaId], references: [id])
-
-  @@unique([empresaId, periodo])
-  @@map("convenios_multilateral")
-}
-
-model AuditoriaLog {
-  id         String        @id @default(uuid()) @db.Uuid
-  empresaId  String        @db.Uuid
-  usuarioId  String?       @db.Uuid
-  userName   String
-  userRole   String
-  tipo       TipoAuditoria
-  modulo     String
-  accion     String
-  tabla      String?
-  registroId String?
-  detalles   String?       @db.Text
-  ipAddress  String?
-  createdAt  DateTime      @default(now())
-
-  empresa Empresa  @relation(fields: [empresaId], references: [id])
-  usuario Usuario? @relation(fields: [usuarioId], references: [id])
-
-  @@index([empresaId, modulo])
-  @@index([usuarioId])
-  @@index([createdAt])
-  @@map("auditoria_logs")
 }

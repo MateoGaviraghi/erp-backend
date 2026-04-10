@@ -3,7 +3,13 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
-import { json, urlencoded, type Request, type Response, type NextFunction } from 'express';
+import {
+  json,
+  urlencoded,
+  type Request,
+  type Response,
+  type NextFunction,
+} from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -25,15 +31,13 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true }));
   // Safety net: if body-parser still throws a SyntaxError (malformed JSON),
   // clear the body and let the request continue instead of returning 400.
-  app.use(
-    (err: unknown, _req: Request, _res: Response, next: NextFunction) => {
-      if (err instanceof SyntaxError && 'body' in err) {
-        next();
-        return;
-      }
-      next(err);
-    },
-  );
+  app.use((err: unknown, _req: Request, _res: Response, next: NextFunction) => {
+    if (err instanceof SyntaxError && 'body' in err) {
+      next();
+      return;
+    }
+    next(err);
+  });
 
   const configService = app.get(ConfigService);
 

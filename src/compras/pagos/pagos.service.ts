@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreatePagoProveedorDto } from './dto/create-pago.dto.js';
 import { PaginationDto, buildMeta } from '../../common/dto/pagination.dto.js';
@@ -40,7 +44,6 @@ export class PagosService {
           empresaId: currentUser.empresaId,
           localId: proveedor.localId,
           proveedorId: dto.proveedorId,
-          cuentaPagarId: dto.cuentaPagarId ?? null,
           monto: dto.monto,
           metodoPago: dto.metodoPago,
           fecha: dto.fecha ? new Date(dto.fecha) : new Date(),
@@ -57,7 +60,9 @@ export class PagosService {
         if (!cxp) throw new NotFoundException('Cuenta por pagar no encontrada');
 
         if (cxp.estado === 'PAGADA') {
-          throw new BadRequestException('La cuenta por pagar ya está completamente pagada');
+          throw new BadRequestException(
+            'La cuenta por pagar ya está completamente pagada',
+          );
         }
 
         const nuevoMontoPagado = Number(cxp.montoPagado) + dto.monto;

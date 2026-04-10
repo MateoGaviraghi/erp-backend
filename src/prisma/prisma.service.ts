@@ -7,6 +7,20 @@ import {
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+interface PrismaQueryEvent {
+  duration: number;
+  query: string;
+}
+
+interface PrismaLogEvent {
+  message: string;
+}
+
+type PrismaWithEvents = PrismaClient & {
+  $on(event: 'query', callback: (e: PrismaQueryEvent) => void): void;
+  $on(event: 'error' | 'warn', callback: (e: PrismaLogEvent) => void): void;
+};
+
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -37,7 +51,9 @@ export class PrismaService
   async onModuleInit() {
     // Loguear queries lentas (>1s) en producción
     if (process.env.NODE_ENV === 'production') {
-      (this as any).$on('query', (e: any) => {
+      const prismaWithEvents = this as unknown as PrismaWithEvents;
+
+      prismaWithEvents.$on('query', (e) => {
         const duration = Number(e.duration);
         if (duration > 1000) {
           this.logger.warn(
@@ -46,11 +62,11 @@ export class PrismaService
         }
       });
 
-      (this as any).$on('error', (e: any) => {
+      prismaWithEvents.$on('error', (e) => {
         this.logger.error(`DB ERROR: ${e.message}`);
       });
 
-      (this as any).$on('warn', (e: any) => {
+      prismaWithEvents.$on('warn', (e) => {
         this.logger.warn(`DB WARN: ${e.message}`);
       });
     }

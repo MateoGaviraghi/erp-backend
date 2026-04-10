@@ -112,13 +112,13 @@ export class AlertingService implements OnModuleInit {
           local: string;
         }>
       >`
-        SELECT p."name", s.cantidad, p."minStock", l."name" as local
+        SELECT p."name", s."cantidad", p."minStock", l."name" as local
         FROM "stock" s
         JOIN "productos" p ON s."productoId" = p.id
         JOIN "locales" l ON s."localId" = l.id
-        WHERE p."minStock" IS NOT NULL
-          AND s.cantidad <= p."minStock"
-          AND p.active = true
+        WHERE p."minStock" > 0
+          AND s."cantidad" <= p."minStock"
+          AND p."active" = true
       `;
 
       if (alertas.length > 0) {
@@ -152,9 +152,9 @@ export class AlertingService implements OnModuleInit {
           createdAt: Date;
         }>
       >`
-        SELECT op.code, op."fechaFinPlanificada", op.estado, op."createdAt"
+        SELECT op."code", op."fechaFinPlanificada", op."estado", op."createdAt"
         FROM "ordenes_produccion" op
-        WHERE op.estado = 'EN_PROCESO'
+        WHERE op."estado" = 'EN_PROCESO'
           AND op."fechaFinPlanificada" < NOW() - INTERVAL '2 days'
       `;
 
@@ -164,7 +164,7 @@ export class AlertingService implements OnModuleInit {
           `⚠ ${trabadas.length} orden(es) de producción en proceso superaron la fecha planificada por +2 días`,
           {
             ordenes: trabadas.slice(0, 5).map((o) => ({
-              numero: o.code,
+              codigo: o.code,
               fechaPlanificada: o.fechaFinPlanificada,
               estado: o.estado,
             })),
